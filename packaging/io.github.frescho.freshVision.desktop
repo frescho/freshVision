@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=freshVision
+GenericName=Capture card viewer and recorder
+Comment=Capture, show and record retro computers through a Vision capture card
+Exec=freshvision
+Icon=io.github.frescho.freshVision
+Terminal=false
+Categories=AudioVideo;Video;Recorder;
+Keywords=capture;retro;C64;composite;S-Video;RGB;record;

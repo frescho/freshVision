@@ -1,0 +1,8 @@
+build/
+*.o
+*.so
+.cache/
+compile_commands.json
+build-release/
+build-flatpak/
+.flatpak-builder/

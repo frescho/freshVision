@@ -1,0 +1,57 @@
+name: build
+
+on:
+  push:
+    branches: [STABLE, DEV]
+    tags: ['v*']
+  pull_request:
+
+permissions:
+  contents: write   # attach the Flatpak to a release
+
+jobs:
+  ubuntu:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Dependencies, build (with the developer tools)
+        run: sudo apt-get update && ./build.sh -y --with-tools --build-dir build
+      - name: Tests
+        run: |
+          build/paltool test
+          build/machines-test
+          build/rgbtune-test
+          build/freshvision --version
+          build/freshcoder --version
+
+  fedora:
+    runs-on: ubuntu-24.04
+    container: registry.fedoraproject.org/fedora:latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Dependencies, build
+        run: ./build.sh -y --with-tools --build-dir build
+      - name: Tests
+        run: |
+          build/machines-test
+          build/freshvision --version
+
+  flatpak:
+    runs-on: ubuntu-24.04
+    container:
+      image: ghcr.io/flathub-infra/flatpak-github-actions:freedesktop-25.08
+      options: --privileged
+    steps:
+      - uses: actions/checkout@v4
+      # pin a commit of the action before relying on it (its README recommends that);
+      # the freedesktop-25.08 image tag is assumed to exist like the documented 24.08 one
+      - uses: flathub-infra/flatpak-github-actions/flatpak-builder@master
+        with:
+          manifest-path: packaging/flatpak/io.github.frescho.freshVision.yml
+          bundle: freshVision.flatpak
+          cache-key: flatpak-builder-${{ github.sha }}
+      - name: Attach to the release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: freshVision.flatpak

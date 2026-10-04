@@ -1,0 +1,55 @@
+# Flatpak manifest for freshVision and freshCoder (release plan step E1).
+#
+# Builds the programs from this source tree inside the Freedesktop runtime.
+# It needs release steps A1-A3 first (binary named `freshvision`, Dear ImGui
+# vendored in third_party/imgui, CMake install rules for the binaries, the
+# .desktop files, icons and the AppStream metainfo); until then it does not
+# build. Local build and test (step E2, needs flatpak-builder):
+#   flatpak-builder --user --install --force-clean build-flatpak \
+#       packaging/flatpak/io.github.frescho.freshVision.yml
+#   flatpak run io.github.frescho.freshVision
+# A bundle file for a GitHub release:
+#   flatpak build-bundle ~/.local/share/flatpak/repo freshVision-0.1.0.flatpak \
+#       io.github.frescho.freshVision
+app-id: io.github.frescho.freshVision
+runtime: org.freedesktop.Platform
+# 25.08: FFmpeg's H.264 support and libx264 come in the codecs-extra
+# extension, installed automatically with the runtime (it replaced ffmpeg-full).
+runtime-version: '25.08'
+sdk: org.freedesktop.Sdk
+command: freshvision
+finish-args:
+  # Window: SDL2 with OpenGL, on Wayland or X11.
+  - --share=ipc
+  - --socket=wayland
+  - --socket=fallback-x11
+  # The capture card (/dev/video*), ALSA hardware devices (/dev/snd, for the
+  # hw: capture and monitor devices) and the GPU (OpenGL; NVENC through the
+  # NVIDIA GL extension). A capture card has no narrower Flatpak permission.
+  - --device=all
+  # The sound monitor's "default" device goes through PulseAudio/PipeWire.
+  - --socket=pulseaudio
+  # Recordings default to the Videos folder; other folders come through the
+  # file-chooser portal (release step A7).
+  - --filesystem=xdg-videos
+  # "Import from the other installation": the installed build's settings,
+  # read-only.
+  - --filesystem=xdg-config/freshvision:ro
+modules:
+  - name: freshvision
+    buildsystem: cmake-ninja
+    config-opts:
+      - -DCMAKE_BUILD_TYPE=Release
+    sources:
+      # Local build from this tree; a release build points at the tagged
+      # GitHub source instead (step D3), e.g.:
+      #   - type: git
+      #     url: https://github.com/frescho/freshvision.git
+      #     tag: v0.1.0
+      - type: dir
+        path: ../..
+        skip:
+          - build
+          - build-flatpak
+          - .flatpak-builder
+          - .git

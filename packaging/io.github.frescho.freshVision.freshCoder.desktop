@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=freshCoder
+GenericName=Composite recording decoder and encoder
+Comment=Turn freshVision's raw composite recordings into colour video
+Exec=freshcoder %f
+Icon=io.github.frescho.freshVision.freshCoder
+Terminal=false
+MimeType=video/x-matroska;
+Categories=AudioVideo;Video;AudioVideoEditing;
+Keywords=decode;encode;composite;PAL;NTSC;video;

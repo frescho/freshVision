@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.frescho.freshVision</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <name>freshVision</name>
+  <summary>Capture, show and record retro computers through a Vision capture card</summary>
+  <developer id="io.github.frescho">
+    <name>frescho</name>
+  </developer>
+  <description>
+    <p>
+      freshVision shows and records the picture of a Datapath Vision capture card on Linux
+      (an independent program, not affiliated with Datapath). It is made for retro computers:
+      RGB with sharp integer scaling, and composite or S-Video decoded in software from the
+      card's Sync-on-Green input, for PAL and NTSC machines such as the Commodore 64, ZX Spectrum,
+      BBC Micro, MSX and Apple II.
+    </p>
+    <p>
+      freshCoder, included, turns freshVision's raw composite recordings into colour video
+      with many picture and encoding options.
+    </p>
+    <ul>
+      <li>Live picture with integer scaling and low latency</li>
+      <li>Software PAL/NTSC composite and S-Video decoding with auto-tune</li>
+      <li>Machine modes that switch by themselves when the source changes</li>
+      <li>Recording with sound (NVENC, x264 or lossless FFV1)</li>
+    </ul>
+  </description>
+  <launchable type="desktop-id">io.github.frescho.freshVision.desktop</launchable>
+  <provides>
+    <binary>freshvision</binary>
+    <binary>freshcoder</binary>
+  </provides>
+  <screenshots>
+    <screenshot type="default">
+      <caption>An MSX1 on composite, decoded in software, with the control column</caption>
+      <image>https://raw.githubusercontent.com/frescho/freshvision/main/docs/user/images/freshvision-msx-window.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>A Commodore 64 on composite, decoded</caption>
+      <image>https://raw.githubusercontent.com/frescho/freshvision/main/docs/user/images/decoding/decoded-composite.png</image>
+    </screenshot>
+  </screenshots>
+  <url type="homepage">https://github.com/frescho/freshvision</url>
+  <url type="bugtracker">https://github.com/frescho/freshvision/issues</url>
+  <categories>
+    <category>AudioVideo</category>
+    <category>Video</category>
+  </categories>
+  <content_rating type="oars-1.1"/>
+  <releases>
+    <release version="0.1.0" date="2026-10-03">
+      <description>
+        <p>First public release.</p>
+      </description>
+    </release>
+  </releases>
+</component>
