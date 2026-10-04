@@ -50,8 +50,20 @@ jobs:
           manifest-path: packaging/flatpak/io.github.frescho.freshVision.yml
           bundle: freshVision.flatpak
           cache-key: flatpak-builder-${{ github.sha }}
+      # The release text comes from packaging/release-notes-X.Y.Z.md.
+      - name: Release text
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          f="packaging/release-notes-${GITHUB_REF_NAME#v}.md"
+          if [ -f "$f" ]; then
+            sh packaging/release-body.sh "$f" "$GITHUB_REPOSITORY" "$GITHUB_REF_NAME" > release-body.md
+          else
+            echo "freshVision ${GITHUB_REF_NAME#v}" > release-body.md
+            echo "::warning::$f is missing; the release has no notes"
+          fi
       - name: Attach to the release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
           files: freshVision.flatpak
+          body_path: release-body.md
