@@ -149,6 +149,7 @@ bool Recording::open(const std::string& path, std::string& err) {
             info_.taggedStandard = it->second == "NTSC" ? pal::Standard::Ntsc : pal::Standard::Pal;
         }
     }
+    info_.monoTagged = info_.tags.count("FRESHVISION_MONO") && info_.tags.at("FRESHVISION_MONO") == "1";
     chooseStandard(0);
     return true;
 }

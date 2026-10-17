@@ -396,6 +396,13 @@ void Gui::draw(bool visible, const std::string& statsText, const std::vector<Con
         if (ImGui::Button("Apply timing") && actions.setPalTiming) actions.setPalTiming(dispOpts.palMultiple);
         ImGui::SameLine();
         if (ImGui::Button("Restore SoG baseline") && actions.setPalTiming) actions.setPalTiming(0);
+        ImGui::SameLine();
+        if (ImGui::Button("Card's detected timing") && actions.setPalTiming) actions.setPalTiming(1);
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("A plain starting point for an unknown machine: the picture as the card detects it.\n"
+                              "Decoding and auto-tune go off; Horizontal Size, Position, Timing and Vertical Timing\n"
+                              "go back to the card's defaults for the signal it detects now, then the device reopens.\n"
+                              "If the card measures the wrong line frequency, re-plug the cable instead.");
         if (!geom.autoStatus.empty()) ImGui::TextWrapped("auto-tune: %s", geom.autoStatus.c_str());
         ImGui::Separator();
         // Analog RGB sources (not the composite path).
@@ -803,6 +810,51 @@ void Gui::drawMachines(const MachinePanelState& m, const GuiActions& actions) {
     bool autoSwitch = m.autoSwitch;
     if (ImGui::Checkbox("Switch automatically when the source changes mode", &autoSwitch) && actions.setAutoSwitch)
         actions.setAutoSwitch(autoSwitch);
+
+    // Detect unknown machine: measure, then propose.
+    if (m.detectBusy) {
+        if (ImGui::Button("Cancel detection") && actions.cancelDetect) actions.cancelDetect();
+    } else if (ImGui::Button("Detect unknown machine") && actions.startDetect) {
+        actions.startDetect();
+    }
+    if (ImGui::IsItemHovered())
+        ImGui::SetTooltip("Measures the source (timing, colour bursts on each wire, levels, pixels) and proposes settings.\n"
+                          "Composite sources are switched to an RGB capture at 8x while measuring.\n"
+                          "Nothing is kept unless you click Apply or Save.");
+    if (m.detectBusy || m.detectDone) {
+        ImGui::Indent();
+        for (const auto& p : m.detectProgress) ImGui::TextDisabled("%s", p.c_str());
+        if (m.detectDone) {
+            ImGui::TextColored(m.detectRecognised ? ImVec4(0.5f, 1, 0.5f, 1) : ImVec4(1, 0.5f, 0.4f, 1), "%s",
+                               m.detectSummary.c_str());
+            for (const auto& w : m.detectWarnings) ImGui::TextColored(ImVec4(1, 0.8f, 0.3f, 1), "%s", w.c_str());
+            if (ImGui::BeginTable("##detect", 2, ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_RowBg)) {
+                for (const auto& r : m.detectReasons) {
+                    ImGui::TableNextRow();
+                    ImGui::TableNextColumn();
+                    ImGui::TextUnformatted(r.what.c_str());
+                    ImGui::TableNextColumn();
+                    ImGui::TextUnformatted(r.value.c_str());
+                    if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", r.why.c_str());
+                }
+                ImGui::EndTable();
+            }
+            ImGui::TextDisabled("Hover a value for the reason.");
+            if (!m.detectTimingLike.empty()) ImGui::TextWrapped("Timing like: %s", m.detectTimingLike.c_str());
+            if (m.detectRecognised) {
+                if (ImGui::Button("Apply detected settings") && actions.applyDetected) actions.applyDetected();
+                ImGui::SetNextItemWidth(160);
+                ImGui::InputTextWithHint("##detname", "machine name", detectNameBuf_, sizeof detectNameBuf_);
+                ImGui::SameLine();
+                ImGui::BeginDisabled(detectNameBuf_[0] == 0);
+                if (ImGui::Button("Save as My mode") && actions.saveDetected) actions.saveDetected(detectNameBuf_);
+                ImGui::EndDisabled();
+                if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+                    ImGui::SetTooltip("A new machine in the group \"Detected\" with this mode (click-only).");
+            }
+        }
+        ImGui::Unindent();
+    }
 
     // Newer built-in versions of modes the user replaced: the user decides.
     if (!m.updates.empty()) {

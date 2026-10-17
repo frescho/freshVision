@@ -3,7 +3,24 @@
 All notable changes to freshVision and freshCoder. Versions follow
 [Semantic Versioning](https://semver.org/); before 1.0 anything may change.
 
-## 0.1.0 (unreleased)
+## 0.1.1 (2026-10-17)
+
+Experimental feature release.
+
+### freshVision
+- **Detect unknown machine (experimental):** measures the source for a few
+  seconds and proposes settings with a confidence and a reason for each, for
+  digital (DVI/HDMI), analog RGB, composite and S-Video sources; "Apply" or
+  "Save as My mode" (group "Detected"); option `--detect`. Tested on a C64
+  (composite, S-Video, through an RGB scan converter and through an HDMI line
+  doubler). Digital sources are proposed 1:1 at the detected size.
+- Machine files from documentation for Commodore 16 and Plus/4, Amiga 500, 600
+  and 1200, HT 1080Z and ZX81: click-only and not yet measured on the card.
+- Microkey Primo mode (black and white composite), the "Card's detected
+  timing" button (`--pal-timing card`) and black-and-white decoding
+  (`--pal-mono`; freshCoder `--mono`).
+
+## 0.1.0 (2026-10-03)
 
 First public release.
 

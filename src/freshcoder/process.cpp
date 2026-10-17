@@ -279,7 +279,11 @@ bool Processor::process(const uint8_t* samples, int64_t index, const PllTrack* p
     dp.standard = info_.standard;
     dp.chromaCycles = ui_.chromaCycles;
     dp.edgeDesat = ui_.edgeDesat;
+    dp.mono = ui_.mono || info_.monoTagged;
     dp.burstSearchEnd = pal::burstSearchEndFor(info_.standard, double(info_.horizontalSize) * pal::standardInfo(info_.standard).lineRate,
+                                               info_.horizontalPosition);
+    if (dp.mono)
+        dp.burstStart = pal::monoBlankStartFor(info_.standard, double(info_.horizontalSize) * pal::standardInfo(info_.standard).lineRate,
                                                info_.horizontalPosition);
     {
         const auto& profs = pal::machineProfiles();

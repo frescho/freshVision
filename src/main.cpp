@@ -30,6 +30,7 @@
 #include "display.h"
 #include "formats.h"
 #include "gui.h"
+#include "autodetect.h"
 #include "grid.hpp"
 #include "pal.hpp"
 #include "presets.h"
@@ -74,6 +75,7 @@ struct Options {
     bool palAverageLines = false;
     bool palStripes = false;     // --pal-stripes
     bool palRelock = false;      // --pal-relock
+    bool palMono = false;        // --pal-mono
     int buffers = 0;             // --buffers N (0 = the default 4)
     double frameRate = 0;        // --frame-rate F: VIDIOC_S_PARM before streaming (0 = not set)
     bool palAutoTune = false;
@@ -97,6 +99,7 @@ struct Options {
     bool listMachines = false;
     bool restoreMachines = false;
     bool rgbAutoTune = false;
+    bool detect = false;           // --detect: auto-detect the source once frames flow
     bool rgbAutoCrop = false;
     int svideo = -1;         // --svideo [L,C]: -1 = not given; else luma channel * 3 + chroma channel
 };
@@ -121,6 +124,8 @@ void usage(const char* argv0) {
         "  --swap-rb                swap red and blue of the RGB formats\n"
         "  --no-gui                 start with the ImGui panels hidden (Tab shows them)\n"
         "  --pal-decode             show a g8 Sync-on-Green capture decoded as PAL colour\n"
+        "  --pal-timing card        once streaming, put the card's own timing for the detected signal back\n"
+        "                           (the defaults it reports for Horizontal Size/Position/Timing, Vertical ...)\n"
         "  --pal-timing 4x|8x|10x|sog  once streaming, sample at that multiple of the PAL colour\n"
         "                           subcarrier (width 1024/2048/2560), or put the driver's\n"
         "                           Sync-on-Green baseline timing back (524/113/384).\n"
@@ -132,6 +137,7 @@ void usage(const char* argv0) {
         "  --pal-average-lines      average the colour of line pairs (PAL delay-line method)\n"
         "  --pal-stripes            remove the fixed clock stripes locked to the line (C64: character columns)\n"
         "  --pal-relock             re-align rolling frames at their vertical sync, black per line (Apple IIc)\n"
+        "  --pal-mono               black and white source (no colour burst): grey picture, black per line\n"
         "  --buffers N              V4L2 capture buffers (2-32, default 4)\n"
         "  --frame-rate F           ask the driver for F frames per second (VIDIOC_S_PARM) before streaming\n"
         "  --pal-autotune           auto-tune: line length, black level and swing (g8 composite)\n"
@@ -164,6 +170,7 @@ void usage(const char* argv0) {
         "  --list-machines          print the machine files, their modes and any errors, then exit\n"
         "  --restore-machines       write the built-in machine files that are missing (never overwrites), then exit\n"
         "  --rgb-autotune           analog RGB: tune Phase and centre the picture\n"
+        "  --detect                 measure an unknown source and propose its settings (Machines section)\n"
         "  --rgb-autocrop           ... and crop to the picture (off by default: with a black border\n"
         "                           the crop follows what is drawn, not the machine's screen)\n"
         "  --i-know-it-may-freeze   allow RGB capture without intel_iommu=off\n"
@@ -252,6 +259,7 @@ bool parseArgs(int argc, char** argv, Options& o) {
             else if (v == "6x") o.palTiming = 6;    // NTSC only (an MSX pixel = 4 samples)
             else if (v == "12x") o.palTiming = 12;  // NTSC only (42.95 MHz; an MSX pixel = 8 samples)
             else if (v == "sog") o.palTiming = 0;
+            else if (v == "card") o.palTiming = 1;
             else if (v == "16x") {
                 // Removed until the reason is known: the card
                 // doesn't really sample at 16x on this input.
@@ -259,7 +267,7 @@ bool parseArgs(int argc, char** argv, Options& o) {
                                      "10x is the maximum\n");
                 return false;
             } else {
-                std::fprintf(stderr, "--pal-timing expects 4x, 8x, 10x, 6x/12x (NTSC) or sog\n");
+                std::fprintf(stderr, "--pal-timing expects 4x, 8x, 10x, 6x/12x (NTSC), sog or card\n");
                 return false;
             }
         } else if (a == "--pal-line") {
@@ -290,6 +298,8 @@ bool parseArgs(int argc, char** argv, Options& o) {
             o.frameRate = std::atof(v.c_str());
         } else if (a == "--pal-relock") {
             o.palRelock = true;
+        } else if (a == "--pal-mono") {
+            o.palMono = true;
         } else if (a == "--pal-autotune") {
             o.palAutoTune = true;
         } else if (a == "--sync-picture-to-sound") {
@@ -343,6 +353,8 @@ bool parseArgs(int argc, char** argv, Options& o) {
             o.listMachines = true;
         } else if (a == "--restore-machines") {
             o.restoreMachines = true;
+        } else if (a == "--detect") {
+            o.detect = true;
         } else if (a == "--rgb-autotune") {
             o.rgbAutoTune = true;
         } else if (a == "--rgb-autocrop") {
@@ -711,6 +723,7 @@ int main(int argc, char** argv) {
     dispOpts.palUi.averageLines = opt.palAverageLines;
     dispOpts.palUi.removeStripes = opt.palStripes;
     dispOpts.palUi.relock = opt.palRelock;
+    dispOpts.palUi.mono = opt.palMono;
     dispOpts.palUi.luma = opt.palLuma;
     dispOpts.palAutoTune = opt.palAutoTune;
     dispOpts.delayPictureToSound = opt.syncPictureToSound;
@@ -719,7 +732,7 @@ int main(int argc, char** argv) {
     dispOpts.palUi.profile = std::min<int>(opt.palProfile, int(pal::machineProfiles().size()) - 1);
     if (pal::machineProfiles()[size_t(dispOpts.palUi.profile)].colours > 0)
         dispOpts.palUi.colours = pal::machineProfiles()[size_t(dispOpts.palUi.profile)].colours;
-    if (opt.palTiming > 0) dispOpts.palMultiple = opt.palTiming;
+    if (opt.palTiming > 1) dispOpts.palMultiple = opt.palTiming;
     if (opt.svideo >= 0) {
         dispOpts.palSvideo = true;
         dispOpts.svideoLuma = opt.svideo / 3;
@@ -1205,6 +1218,7 @@ int main(int argc, char** argv) {
             tags.emplace_back("CAPTURE_FPS", std::to_string(recFps));
             // S-Video: which inputs carry brightness and colour (freshCoder decodes it as Y/C).
             if (dispOpts.palDecode) tags.emplace_back("FRESHVISION_STANDARD", stdInfo().name);
+            if (dispOpts.palDecode && dispOpts.palUi.mono) tags.emplace_back("FRESHVISION_MONO", "1");
             if (dispOpts.palDecode && dispOpts.palSvideo && channelOffset(shown.layout, 0) >= 0)
                 tags.emplace_back("FRESHVISION_SVIDEO", std::string(1, "RGB"[std::clamp(dispOpts.svideoLuma, 0, 2)]) + "," +
                                                             std::string(1, "RGB"[std::clamp(dispOpts.svideoChroma, 0, 2)]));
@@ -1477,6 +1491,11 @@ int main(int argc, char** argv) {
             if (c.name == name && c.hasValue) return c.value;
         return fallback;
     };
+    auto controlDefault = [&](const char* name, int64_t fallback) {
+        for (const auto& c : cap.controlsSnapshot())
+            if (c.name == name) return c.def;
+        return fallback;
+    };
     auto setControlNamed = [&](const char* name, int64_t value) {
         for (const auto& c : cap.controlsSnapshot())
             if (c.name == name) {
@@ -1506,14 +1525,24 @@ int main(int argc, char** argv) {
         // 6x and 12x (42.95 MHz, below PAL 10x's 44.3; whole frames at 60 fps on
         // an Apple IIc and an MSX).
         const bool ntsc = videoStd() == pal::Standard::Ntsc;
-        if (mode != 0 && mode != 4 && mode != 8 && mode != 10 && !(ntsc && (mode == 6 || mode == 12))) {
+        if (mode != 0 && mode != 1 && mode != 4 && mode != 8 && mode != 10 && !(ntsc && (mode == 6 || mode == 12))) {
             std::printf("pal timing: %dx refused (%s)\n", mode, ntsc ? "NTSC: 4x, 6x, 8x, 10x or 12x" : "PAL: 4x, 8x or 10x");
             return;
         }
         palTimingMode = mode;
         palTimingLine = dispOpts.palLine;
         palTimingPhase = 0;
-        if (mode > 0) std::printf("pal timing: %s %dxFsc, %d samples/line at 4x, requested\n", stdInfo().name, mode, palTimingLine);
+        if (mode == 1) {
+            // A plain starting point for a machine never seen before: the
+            // card's picture as it detects it (the green samples of g8), no
+            // decoding, no auto-tune; refined by hand from there.
+            dispOpts.palDecode = false;
+            dispOpts.palAutoTune = false;
+            dispOpts.rgbAutoTune = false;
+            dispOpts.palUi.mono = false;
+            std::printf("pal timing: the card's own timing for the detected signal requested (decoding and auto-tune off)\n");
+        }
+        else if (mode > 0) std::printf("pal timing: %s %dxFsc, %d samples/line at 4x, requested\n", stdInfo().name, mode, palTimingLine);
         else std::printf("pal timing: Sync-on-Green baseline requested\n");
     };
     // In phases, measured: the line length takes effect
@@ -1526,7 +1555,10 @@ int main(int argc, char** argv) {
     auto applyPendingPalTiming = [&] {
         if (palTimingMode < 0 || !cap.streaming() || framesSinceStart < 5) return;
         const int m = palTimingMode;
-        const int64_t size = m > 0 ? int64_t(palTimingLine) * m / 4 : 524;
+        // Mode 1: the defaults the driver reports for the signal it detects
+        // now (VIDIOC_QUERYCTRL), the timing the card itself would use.
+        const bool card = m == 1;
+        const int64_t size = card ? controlDefault("Horizontal Size", 524) : m > 0 ? int64_t(palTimingLine) * m / 4 : 524;
         if (palTimingPhase == 2) {
             if (framesSinceStart - palPhaseFrame < 25) return;
             palTimingMode = -1;
@@ -1537,12 +1569,20 @@ int main(int argc, char** argv) {
             // a stop/S_FMT/start to a new width crashed it.
             int wPos = 0, wWidth = 0;
             windowAt4x(wPos, wWidth);
-            const uint32_t newW = m > 0 ? uint32_t(wWidth * m / 4) : 384;
-            restart("pal timing: reopen at " + std::to_string(newW) + " so the new capture window applies", newW, 0, true);
+            uint32_t newW = m > 1 ? uint32_t(wWidth * m / 4) : 384, newH = 0;
+            if (card) {
+                // Widths need alignment on this card (514 was rejected, 384/512 taken).
+                newW = uint32_t(std::max<int64_t>(64, controlDefault("Horizontal Timing", 384) / 16 * 16));
+                newH = uint32_t(std::max<int64_t>(16, controlDefault("Vertical Timing", 0)));
+            }
+            restart("pal timing: reopen at " + std::to_string(newW) + " so the new capture window applies", newW, newH, true);
             return;
         }
         if (palTimingPhase == 0) {
-            if (m > 0) {
+            if (card) {
+                for (const char* n : {"Horizontal Timing", "Horizontal Position", "Vertical Timing", "Vertical Position"})
+                    if (controlValue(n, -1) >= 0) setControlNamed(n, controlDefault(n, 0));
+            } else if (m > 0) {
                 setControlNamed("Horizontal Size", size);
             } else {
                 setControlNamed("Horizontal Timing", 384);
@@ -1553,7 +1593,7 @@ int main(int argc, char** argv) {
             return;
         }
         if (framesSinceStart - palPhaseFrame < 25) return;
-        if (m > 0) {
+        if (m > 1) {
             if (controlValue("Horizontal Size", 0) != size) return;  // snapshot refreshes once a second
             int wPos = 0, wWidth = 0;
             windowAt4x(wPos, wWidth);
@@ -2164,6 +2204,255 @@ int main(int argc, char** argv) {
                     dispOpts.rgbScreenH);
     };
     uint64_t rgbTuneGen = 0;
+    bool detectStarted = false;
+    double sourceLineRate = -1;  // the driver's line rate for the current source (kernel log), -1 = not read yet
+
+    // Auto-detect for an unknown machine (rules in src/autodetect.*).
+    // Measures the
+    // source in steps, each through the paths already in use (format switch
+    // and PAL timing: full reopens, never a width change on an open handle),
+    // then shows a proposal; nothing is applied without a click.
+    struct DetectRun {
+        enum class Stage { Idle, Wait, Format, Timing, Measure, Done } stage = Stage::Idle;
+        detect::Path path = detect::Path::None;
+        int64_t startNs = 0, untilNs = 0;
+        int frames = 0, measured = 0;
+        bool ntsc = false;
+        int burstAt = -1;
+        int colourVotes[3] = {0, 0, 0}, burstSeen[3] = {0, 0, 0};
+        double amplitude[3] = {0, 0, 0};
+        std::complex<double> step[3];
+        double whiteClip = 0;
+        bool autoSwitchBefore = true;
+        detect::Measurements m;
+        detect::Proposal result;
+        std::vector<std::string> progress;
+        bool applied = false;
+    } det;
+    auto detectBusy = [&] { return det.stage != DetectRun::Stage::Idle && det.stage != DetectRun::Stage::Done; };
+    auto detectLog = [&](const std::string& s) {
+        det.progress.push_back(s);
+        std::printf("detect: %s\n", s.c_str());
+    };
+    // The driver's line rate from its timing dump in the kernel log (the
+    // last "HorFreq" figure); 0 if none (printed when its detection changes).
+    auto driverLineRate = [&]() -> double {
+#ifdef _WIN32
+        return 0;
+#else
+        FILE* p = popen("dmesg 2>/dev/null", "r");
+        if (!p) return 0;
+        char line[512];
+        double last = 0;
+        while (std::fgets(line, sizeof line, p)) {
+            const char* h = std::strstr(line, "HorFreq");
+            if (!h) continue;
+            h += 7;
+            while (*h && !std::isdigit(static_cast<unsigned char>(*h))) ++h;
+            if (*h) last = std::atof(h);
+        }
+        pclose(p);
+        return last;
+#endif
+    };
+    auto finishDetect = [&](bool cancelled) {
+        autoSwitch = det.autoSwitchBefore;
+        decidedSig = detected.signature();  // no automatic switch away from what the user now looks at
+        if (cancelled) {
+            det.stage = DetectRun::Stage::Idle;
+            detectLog("cancelled");
+            return;
+        }
+        det.result = detect::propose(det.m, &machines);
+        det.stage = DetectRun::Stage::Done;
+        detectLog("done: " + det.result.summary());
+        for (const auto& r : det.result.reasons) std::printf("detect:   %s = %s (%s)\n", r.what.c_str(), r.value.c_str(), r.why.c_str());
+        for (const auto& w : det.result.warnings) std::printf("detect:   warning: %s\n", w.c_str());
+        if (!det.result.timingLike.empty()) std::printf("detect:   timing like: %s\n", det.result.timingLike.c_str());
+    };
+    actions.startDetect = [&] {
+        if (det.stage != DetectRun::Stage::Idle && det.stage != DetectRun::Stage::Done) return;
+        det = DetectRun{};
+        det.autoSwitchBefore = autoSwitch;
+        autoSwitch = false;  // held back while measuring
+        rgbTune.stop();
+        dispOpts.palAutoTune = false;
+        dispOpts.rgbAutoTune = false;
+        det.startNs = nowNs();
+        det.untilNs = det.startNs + 3500000000LL;  // the frame rate needs 3 s of buffer times
+        det.stage = DetectRun::Stage::Wait;
+        detectLog("measuring the frame rate and the driver's timing");
+    };
+    actions.cancelDetect = [&] {
+        if (det.stage != DetectRun::Stage::Idle && det.stage != DetectRun::Stage::Done) finishDetect(true);
+    };
+    actions.applyDetected = [&] {
+        if (det.stage != DetectRun::Stage::Done) return;
+        applyPresetState(det.result.settings);
+        lastMachineApplyNs = nowNs();
+        if (det.result.settings.display.rgbAutoTune) rgbTunePending = true;
+        det.applied = true;
+        machineStatus = "Detected settings applied";
+    };
+    actions.saveDetected = [&](const std::string& name) {
+        if (det.stage != DetectRun::Stage::Done || name.empty()) return;
+        Machine mc;
+        mc.id = machineIdFor(name);
+        mc.name = name;
+        mc.group = "Detected";
+        mc.note = "Made by Detect unknown machine (" + std::string(detect::pathName(det.result.path)) + ")";
+        for (const Machine& m : machines)
+            if (m.id == mc.id) {
+                machineStatus = "A machine \"" + m.name + "\" (" + mc.id + ") already exists: choose another name";
+                return;
+            }
+        MachineMode md;
+        md.name = std::string("Detected ") + detect::pathName(det.result.path);
+        md.settings = det.result.settings;
+        md.settings.devicePath = opt.device;
+        md.origin = ModeOrigin::Mine;
+        md.match.manual = true;  // click-only until the user trusts it
+        md.match.input = det.m.input;
+        if (det.m.refreshHz > 0) md.match.refreshHz = std::round(det.m.refreshHz * 100) / 100, md.match.refreshTol = 0.06;
+        mc.modes.push_back(md);
+        mc.mine = true;
+        std::string e;
+        if (!saveMachine(mc, e)) {
+            machineStatus = "Save: " + e;
+            return;
+        }
+        reloadMachines();
+        machineStatus = "Saved " + name + " (group Detected) in My modes";
+    };
+    // One frame while measuring.
+    auto detectOnFrame = [&](const FrameView& f) {
+        if (det.stage != DetectRun::Stage::Measure) return;
+        if (++det.frames % 5 != 0) return;  // every 5th frame: a second's worth of samples at 50 Hz
+        detect::Measurements& m = det.m;
+        const int want = 10;
+        if (m.input.empty()) return;
+        if (det.path == detect::Path::Composite) {
+            const int K = m.samplesPerCycle;
+            for (int w = 0; w < 3; ++w) {
+                if (f.layout == Layout::Grey8 && w != 1) continue;
+                const std::vector<uint8_t> plane = detect::extractWire(f, w);
+                const detect::WireBurst b = detect::measureBurst(plane.data(), int(f.width), int(f.height), K, det.ntsc, det.burstAt);
+                ++det.burstSeen[w];
+                if (b.colour == 1) {
+                    ++det.colourVotes[w];
+                    det.amplitude[w] += b.amplitude;
+                    // PAL: the step is known up to 180 deg, so average the doubled angle.
+                    const double a = b.phaseStepDeg * pal::kPi / 180 * (det.ntsc ? 1 : 2);
+                    det.step[w] += std::polar(1.0, a);
+                }
+                if (w == 1) {
+                    size_t at255 = 0;
+                    for (uint8_t v : plane) at255 += v == 255;
+                    det.whiteClip += double(at255) / double(plane.size());
+                }
+            }
+            if (++det.measured < want) return;
+            for (int w = 0; w < 3; ++w) {
+                detect::WireBurst& b = m.burst[w];
+                if (!det.burstSeen[w]) continue;
+                b.colour = det.colourVotes[w] * 2 > det.burstSeen[w] ? 1 : 0;
+                if (det.colourVotes[w]) {
+                    b.amplitude = det.amplitude[w] / det.colourVotes[w];
+                    b.phaseStepDeg = std::arg(det.step[w]) * 180 / pal::kPi / (det.ntsc ? 1 : 2);
+                }
+            }
+            m.whiteClip = det.whiteClip / det.measured;
+        } else {
+            if (++det.measured < want) return;
+            const std::vector<uint8_t> rgb = detect::toRgb(f);
+            double lo = 1.2, hi = 8;
+            if (m.lineRateHz > 0 && m.horizontalSize > 0) detect::pixelSearchRange(m.lineRateHz * m.horizontalSize, m.lineRateHz, lo, hi);
+            if (!rgb.empty()) m.pixelPeriod = detect::pixelPeriodRgb(rgb.data(), int(f.width), int(f.height), lo, hi, &m.pixelScore);
+            m.area = findPictureArea(f);
+            detect::pixelRepetition(f, m.repeatX, m.repeatY);
+        }
+        finishDetect(false);
+    };
+    // The steps between frames.
+    auto runDetect = [&] {
+        const int64_t now = nowNs();
+        switch (det.stage) {
+        case DetectRun::Stage::Wait: {
+            if (now < det.untilNs || framesSinceStart < 25) return;
+            if (lastRefreshHz <= 0 && now - det.startNs < 10000000000LL) return;  // up to 10 s for a rate
+            detect::Measurements& m = det.m;
+            m.input = cap.inputName();
+            m.signal = cap.signalTypeName();
+            m.noSignal = !cap.signalPresent();
+            for (const auto& c : cap.controlsSnapshot()) {
+                if (c.name == "Horizontal Timing") m.width = uint32_t(c.def);
+                else if (c.name == "Vertical Timing") m.height = uint32_t(c.def);
+                else if (c.name == "Horizontal Size") m.lineTotal = int(c.def);
+            }
+            m.refreshHz = lastRefreshHz;
+            m.lineRateHz = driverLineRate();
+            m.horizontalSize = int(controlValue("Horizontal Size", m.lineTotal));
+            det.path = detect::pathFor(m.input, m.signal);
+            char buf[200];
+            std::snprintf(buf, sizeof buf, "%s: %s, %.3f Hz frames, %.0f Hz lines (kernel log)", detect::pathName(det.path),
+                          m.input.c_str(), m.refreshHz, m.lineRateHz);
+            detectLog(buf);
+            if (m.noSignal) {
+                finishDetect(false);
+                return;
+            }
+            if (det.path != detect::Path::Composite) {
+                // Digital and RGB: measured as the card captures them now.
+                if (dispOpts.palDecode) dispOpts.palDecode = false;
+                det.stage = DetectRun::Stage::Measure;
+                detectLog("measuring the picture (pixel grid, repetition, picture area)");
+                return;
+            }
+            // Composite / S-Video: an rgb4 capture (all three wires) at 8x,
+            // the line from the driver's line rate (the step refines it).
+            det.ntsc = m.refreshHz > 55;
+            const pal::StandardInfo& si = pal::standardInfo(det.ntsc ? pal::Standard::Ntsc : pal::Standard::Pal);
+            double lr = m.lineRateHz;
+            if (lr > 25000 && lr < 34000) lr /= 2;  // locked at twice the rate: proposal warns
+            if (lr < 14000 || lr > 17000) lr = si.lineRate;
+            dispOpts.videoStandard = det.ntsc ? 1 : 0;
+            dispOpts.palLine = int(std::lround(4 * si.fsc / lr));
+            dispOpts.palMultiple = 8;
+            dispOpts.palDecode = false;
+            dispOpts.palSvideo = false;
+            const PixelFormat* rgb4 = findFormat("rgb4");
+            if (chosen && rgb4 && chosen->fourcc != rgb4->fourcc) {
+                const auto fm = cap.format();
+                detectLog("switching to RGB (all three wires) at the current size");
+                switchFormat(rgb4, fm.width, fm.height);
+                det.stage = DetectRun::Stage::Format;
+            } else {
+                det.stage = DetectRun::Stage::Format;
+            }
+            return;
+        }
+        case DetectRun::Stage::Format:
+            if (framesSinceStart < 25) return;
+            detectLog("setting 8x sampling, line " + std::to_string(dispOpts.palLine) + " (from the line rate)");
+            actions.setPalTiming(8);
+            det.untilNs = now + 1000000000LL;
+            det.stage = DetectRun::Stage::Timing;
+            return;
+        case DetectRun::Stage::Timing: {
+            if (palTimingMode >= 0 || framesSinceStart < 50 || now < det.untilNs) return;
+            detect::Measurements& m = det.m;
+            m.horizontalSize = int(controlValue("Horizontal Size", 0));
+            const pal::StandardInfo& si = pal::standardInfo(det.ntsc ? pal::Standard::Ntsc : pal::Standard::Pal);
+            m.samplesPerCycle = 8;
+            const double fs = double(m.horizontalSize) * si.fsc / (dispOpts.palLine / 4.0);  // line-locked sample rate
+            det.burstAt = int(std::lround(si.burstStart * fs)) - int(controlValue("Horizontal Position", 0));
+            det.stage = DetectRun::Stage::Measure;
+            detectLog("measuring the colour bursts on each wire and the levels");
+            return;
+        }
+        default: return;
+        }
+    };
     // --machine NAME[/MODE]: the file name or the machine's name.
     std::string startMachine = opt.machine, startMode;
     if (const size_t sl = startMachine.find('/'); sl != std::string::npos)
@@ -2349,6 +2638,8 @@ int main(int argc, char** argv) {
                         dp.averageLines = dispOpts.palUi.averageLines;
                         dp.chromaCycles = dispOpts.palUi.chromaCycles;
                         dp.edgeDesat = dispOpts.palUi.edgeDesat;
+                        dp.mono = dispOpts.palUi.mono;
+                        if (dp.mono) dp.burstStart = pal::monoBlankStartFor(dp.standard, fs, int(controlValue("Horizontal Position", 90)));
                         dp.brightness = dispOpts.palUi.picture.brightness;
                         dp.contrast = dispOpts.palUi.picture.contrast;
                         dp.saturation = dispOpts.palUi.picture.saturation;
@@ -2655,6 +2946,7 @@ int main(int argc, char** argv) {
                                         capturedNs);
                 if (rgbTune.running() && shown.layout != Layout::Grey8)
                     rgbTune.onFrame(FrameView{f.data, cf.width, cf.height, cf.stride, shown.layout}, rgbIo);
+                detectOnFrame(FrameView{f.data, cf.width, cf.height, cf.stride, shown.layout});
                 cap.release(f);
                 if (pendingRgbCrop.set) {  // after the buffer went back: the crop restarts the capture
                     const Rect r = pendingRgbCrop;
@@ -2671,6 +2963,11 @@ int main(int argc, char** argv) {
                 applyMachineMode(mi, mo, false);
             }
             applyPendingPalTiming();
+            runDetect();
+            if (opt.detect && !detectStarted && cap.streaming() && framesSinceStart >= 25) {
+                detectStarted = true;
+                actions.startDetect();
+            }
             if (modeBaselineAtNs && nowNs() >= modeBaselineAtNs && palTimingMode < 0 && !windowReopenAtNs &&
                 framesSinceStart >= 25) {
                 modeBaseline = capturePresetState("", baselineMode);
@@ -2879,6 +3176,16 @@ int main(int argc, char** argv) {
                 machineState.autoSwitch = autoSwitch;
                 machineState.folder = machinesDir();
                 machineState.updates = machineUpdates;
+                machineState.detectBusy = detectBusy();
+                machineState.detectDone = det.stage == DetectRun::Stage::Done;
+                machineState.detectApplied = det.applied;
+                machineState.detectProgress = det.progress;
+                machineState.detectSummary = det.stage == DetectRun::Stage::Done ? det.result.summary() : "";
+                machineState.detectRecognised = det.result.recognised;
+                machineState.detectReasons.clear();
+                for (const auto& r : det.result.reasons) machineState.detectReasons.push_back({r.what, r.value, r.why});
+                machineState.detectWarnings = det.result.warnings;
+                machineState.detectTimingLike = det.result.timingLike;
                 // What a Save into the active mode would take over (refreshed twice a second).
                 if (haveModeBaseline && activeModeName == baselineMode) {
                     if (nowNs() - lastChangesNs > 500000000LL) {
@@ -3050,7 +3357,12 @@ int main(int argc, char** argv) {
                         // (283.5 C64 .. 283.75 standard; 180-degree ambiguous).
                         // NTSC: around 227.75 (227.5 C64 NTSC, 228 Apple II/MSX1), the step exact.
                         const double sfrac = std::arg(cplVec) / (2 * pal::kPi);
-                        const double mid = stdInfo().cyclesPerLine;
+                        // Nearest the driver's line rate when it is a TV line rate
+                        // (a TED machine has 285, outside the standard's range).
+                        const double fromRate = sourceLineRate >= 14000 && sourceLineRate <= 17000
+                                                    ? stdInfo().fsc / sourceLineRate : 0;
+                        const double mid = fromRate > 0 && std::abs(fromRate - stdInfo().cyclesPerLine) < 4
+                                               ? fromRate : stdInfo().cyclesPerLine;
                         const bool exact = !stdInfo().vSwitch;
                         double best = 0, bestD = 1e9;
                         for (double base : {std::floor(mid) - 1, std::floor(mid), std::floor(mid) + 1})
@@ -3092,6 +3404,7 @@ int main(int argc, char** argv) {
                         colourFrames[ch] = colourSeen[ch] = 0;
                     }
                     const std::string sig = dm.signature();
+                    if (sig != stableSig || sourceLineRate < 0) sourceLineRate = driverLineRate();  // once per source
                     if (sig != stableSig) {
                         stableSig = sig, stableCount = 0;
                         for (int& k : colourKnown) k = -1;  // a new source: measure again
@@ -3129,7 +3442,7 @@ int main(int argc, char** argv) {
                             std::printf("machines: command-line settings kept; the automatic switch acts on the next "
                                         "mode change\n");
                         }
-                    } else if (ready && autoSwitch && machineMatch.score >= 0 && !recorder.active()) {
+                    } else if (ready && autoSwitch && machineMatch.score >= 0 && !recorder.active() && !detectBusy()) {
                         const Machine& bm = machines[size_t(machineMatch.machine)];
                         const MachineMode& bmode = bm.modes[size_t(machineMatch.mode)];
                         const int ai = findMachine(activeMachineId);
@@ -3151,7 +3464,7 @@ int main(int argc, char** argv) {
                             if (unknown) tentativeColourCh = needCh;
                         }
                         decidedSig = sig;
-                    } else if (ready && autoSwitch && machineMatch.score < 0 && sig != decidedSig) {
+                    } else if (ready && autoSwitch && machineMatch.score < 0 && sig != decidedSig && !detectBusy()) {
                         decidedSig = sig;
                         std::printf("machines: no machine mode matches the source (%s)\n", dm.describe().c_str());
                         machineStatus = "No machine mode matches this source; set it up and save it as a mode";

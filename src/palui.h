@@ -26,6 +26,7 @@ struct PalDecodeUi {
     bool relock = false;
     int chromaCycles = 2;        // colour smoothing (DecodeParams::chromaCycles)
     float edgeDesat = 0;         // edge colour reduction (DecodeParams::edgeDesat), 0-1
+    bool mono = false;           // black and white source, no colour burst (DecodeParams::mono)
     bool softText = false;       // two-colour text, soft (pal::softTwoColour)         // re-align rolling frames + black per line (pal::VerticalRelock, DecodeParams::lineClamp)  // subtract the fixed pattern locked to the line (C64 clock stripes, pal::LinePattern)
     PalPicture picture;
     bool pll = true;           // freshCoder: follow the carrier over the recording (software PLL)

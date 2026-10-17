@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Small bridges to the desktop: a folder picker dialog and "open this folder
-// in the file browser". Linux only for now: the dialogs go through the
+// in the file browser". Linux (desktop.cpp): the dialogs go through the
 // desktop's file-chooser portal (portal.h; also inside a Flatpak), with
 // `zenity` as the fallback when no portal runs; folders open with `xdg-open`.
 // Programs are started directly (no shell, so folder names are never
 // re-interpreted), and every child is reaped so none is left as a zombie.
+// Windows (desktop_win.cpp): the system's file dialog on a worker thread,
+// Explorer for folders, CreateProcess for programs.
 #pragma once
 
 #include <atomic>
@@ -43,6 +45,7 @@ private:
     mutable std::mutex mu_;
     std::thread thread_;
     pid_t pid_ = -1;
+    unsigned long dialogThreadId_ = 0;  // Windows: the dialog's thread (closed with the program)
     bool running_ = false, done_ = false;
     std::string chosen_, err_;
 };

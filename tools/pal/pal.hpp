@@ -60,6 +60,13 @@ inline int burstSearchEndFor(Standard s, double fs, int position) {
     const StandardInfo& si = standardInfo(s);
     return std::max(0, int(std::lround((si.burstStart + si.burstCycles / si.fsc + 0.6e-6) * fs)) - position);
 }
+// Black and white: where blanking is read (DecodeParams::burstStart with
+// mono), the standard burst's place on the back porch, in samples of the
+// capture window; -1 if the window starts after it.
+inline int monoBlankStartFor(Standard s, double fs, int position) {
+    const int at = int(std::lround(standardInfo(s).burstStart * fs)) - position;
+    return at >= 0 ? at : -1;
+}
 
 // --- generator --------------------------------------------------------------
 
@@ -280,6 +287,11 @@ struct DecodeParams {
     // coloured background has no colour of its own); flat areas keep theirs.
     // 0 = off; 1 = strong.
     double edgeDesat = 0;
+    // Black and white source (no colour burst, e.g. a Microkey Primo): no
+    // burst search (blanking is read at burstStart, or just before the
+    // active picture), no colour, brightness taken unfiltered (there is no
+    // carrier to remove), black per line. Gain = fallbackMvPerCode.
+    bool mono = false;
 };
 
 struct DecodeInfo {
@@ -522,6 +534,7 @@ inline int decodeInto(const uint8_t* s, int width, int lines, const DecodeParams
     //    (picture edges have carrier-frequency energy too, and a luma-only
     //    signal must end up with no burst at all).
     int bStart = dp.burstStart;
+    if (bStart < 0 && dp.mono) bStart = std::max(0, std::min(dp.activeStart, width) - dp.burstLen - K);
     if (bStart < 0) {
         double best = -1;
         int limit = dp.activeStart > dp.burstLen ? dp.activeStart : std::min(width, 40 * K);
@@ -569,7 +582,7 @@ inline int decodeInto(const uint8_t* s, int width, int lines, const DecodeParams
         burstAmp *= 2.0;
         blank = 0.0;
     }
-    bool colour = burstAmp >= dp.killerCodes;
+    bool colour = !dp.mono && burstAmp >= dp.killerCodes;
 
     // 3. V-switch parity: the burst angle is psi+45 deg on +1 lines and
     //    psi+135 deg on -1 lines. Both assignments give a perfectly steady
@@ -673,7 +686,7 @@ inline int decodeInto(const uint8_t* s, int width, int lines, const DecodeParams
     // Brightness: its own blanking and gain in Y/C (the colour plane's blank
     // is the colour wire's zero, not black).
     const double yBlank = yc ? lumaBlank : blank;
-    const bool perLine = dp.lineClamp && !clipped;
+    const bool perLine = (dp.lineClamp || dp.mono) && !clipped;
     // NTSC setup: black sits that far above blanking; taken off so black is black.
     const double setup = dp.setupIre / 100.0, setupGain = 1.0 / std::max(0.5, 1.0 - setup);
     const double yScale = yc && dp.lumaMvPerCode > 0 ? dp.lumaMvPerCode / si.whiteMv : lumaScale;
@@ -743,7 +756,7 @@ inline int decodeInto(const uint8_t* s, int width, int lines, const DecodeParams
                 double lum = y[n];
                 if (yc) {
                     lum = rv(row, n);  // the brightness wire as it is
-                } else if (dp.luma == LumaFilter::Off) {
+                } else if (dp.luma == LumaFilter::Off || dp.mono) {
                     lum = rv(row, n);
                 } else if (dp.luma == LumaFilter::Notch) {
                     // The carrier waveform at this phase: the chroma part

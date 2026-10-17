@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "settings.h"
+#include "platform.h"
 
 #include <algorithm>
 #include <cstdio>
@@ -22,9 +23,7 @@ std::string pathFor(const std::string& name) { return settingsFolder() + "/" + n
 }  // namespace
 
 std::string settingsFolder() {
-    const char* cfg = std::getenv("XDG_CONFIG_HOME");
-    const char* home = std::getenv("HOME");
-    std::string dir = (cfg && *cfg ? std::string(cfg) : std::string(home ? home : ".") + "/.config") + "/freshvision/freshcoder";
+    std::string dir = (std::filesystem::u8path(fv::settingsBaseDir()) / "freshcoder").u8string();
     std::error_code ec;
     std::filesystem::create_directories(dir, ec);
     return dir;
@@ -54,7 +53,7 @@ bool saveSettings(const std::string& name, const CoderSettings& s, std::string& 
     }
     const fv::PalDecodeUi& u = s.ui;
     f << "# freshCoder settings\n";
-    f << "luma=" << u.luma << "\naverage_lines=" << u.averageLines << "\nclock_stripes=" << u.removeStripes << "\nrelock=" << u.relock << "\nchroma_cycles=" << u.chromaCycles << "\nedge_desat=" << u.edgeDesat << "\nsoft_text=" << u.softText << "\n";
+    f << "luma=" << u.luma << "\naverage_lines=" << u.averageLines << "\nclock_stripes=" << u.removeStripes << "\nrelock=" << u.relock << "\nchroma_cycles=" << u.chromaCycles << "\nedge_desat=" << u.edgeDesat << "\nsoft_text=" << u.softText << "\nmono=" << u.mono << "\n";
     f << "brightness=" << u.picture.brightness << "\ncontrast=" << u.picture.contrast << "\nsaturation=" << u.picture.saturation
       << "\nhue=" << u.picture.hue << "\ngamma=" << u.picture.gamma << "\n";
     f << "pll=" << u.pll << "\npll_speed=" << u.pllBandwidth << "\n";
@@ -116,7 +115,7 @@ bool loadSettings(const std::string& name, CoderSettings& s, std::string& err) {
         if (kv.count(k)) v = float(std::atof(kv[k].c_str()));
     };
     fv::PalDecodeUi& u = s.ui;
-    getI("luma", u.luma), getB("average_lines", u.averageLines), getB("clock_stripes", u.removeStripes), getB("relock", u.relock), getF("edge_desat", u.edgeDesat), getB("soft_text", u.softText), getI("chroma_cycles", u.chromaCycles), u.chromaCycles = std::clamp(u.chromaCycles, 1, 12);
+    getI("luma", u.luma), getB("average_lines", u.averageLines), getB("clock_stripes", u.removeStripes), getB("relock", u.relock), getF("edge_desat", u.edgeDesat), getB("soft_text", u.softText), getB("mono", u.mono), getI("chroma_cycles", u.chromaCycles), u.chromaCycles = std::clamp(u.chromaCycles, 1, 12);
     getF("brightness", u.picture.brightness), getF("contrast", u.picture.contrast), getF("saturation", u.picture.saturation);
     getF("hue", u.picture.hue), getF("gamma", u.picture.gamma);
     getB("pll", u.pll), getF("pll_speed", u.pllBandwidth);

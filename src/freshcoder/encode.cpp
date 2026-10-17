@@ -2,6 +2,7 @@
 #include "encode.h"
 
 #include <algorithm>
+#include <cstdlib>
 #include <cmath>
 #include <cstdio>
 #include <cstring>
@@ -149,7 +150,11 @@ std::string lower(std::string s) {
 
 const std::vector<VideoCodec>& availableCodecs() {
     static const std::vector<VideoCodec> list = [] {
-        setenv("SVT_LOG", "1", 0);  // SVT-AV1: errors only, no banner on every open
+#ifdef _WIN32
+        if (!std::getenv("SVT_LOG")) _putenv_s("SVT_LOG", "1");
+#else
+        setenv("SVT_LOG", "1", 0);
+#endif  // SVT-AV1: errors only, no banner on every open
         std::vector<VideoCodec> out;
         for (const auto& s : specs()) {
             VideoCodec v;

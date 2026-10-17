@@ -41,6 +41,10 @@
       <caption>A Commodore 64 on composite, decoded</caption>
       <image>https://raw.githubusercontent.com/frescho/freshVision/STABLE/docs/user/images/decoding/decoded-composite.png</image>
     </screenshot>
+    <screenshot>
+      <caption>Detect unknown machine on a Commodore 64: settings proposed with their reasons</caption>
+      <image>https://raw.githubusercontent.com/frescho/freshVision/STABLE/docs/user/images/freshvision-detect.png</image>
+    </screenshot>
   </screenshots>
   <url type="homepage">https://github.com/frescho/freshvision</url>
   <url type="bugtracker">https://github.com/frescho/freshvision/issues</url>
@@ -50,6 +54,11 @@
   </categories>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.1.1" date="2026-10-17">
+      <description>
+        <p>Experimental feature release: Detect unknown machine (proposes settings for any source, with reasons and a confidence), machine modes prepared from documentation for the Commodore 16 and Plus/4, Amiga 500/600/1200, HT 1080Z and ZX81, the Microkey Primo mode and black-and-white decoding.</p>
+      </description>
+    </release>
     <release version="0.1.0" date="2026-10-03">
       <description>
         <p>First public release.</p>

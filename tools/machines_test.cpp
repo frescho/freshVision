@@ -122,6 +122,30 @@ int main() {
             if (!ok) ++failures;
             std::printf("%-62s %s\n", "MSX1 named by the user: its click-only mode fits", ok ? "PASS" : "FAIL");
         }
+    // The Primo (black and white, no carrier; 50.083 Hz): click-only,
+    // its mode fits when the user names it, never by itself.
+    for (const Machine& m : ms)
+        if (m.id == "primo") {
+            DetectedMode d = sog(50.083, 0, -1);
+            const int named = scoreMode(m, m.modes[0], d, nullptr, true);
+            const int plain = scoreMode(m, m.modes[0], d, nullptr, false);
+            const bool ok = m.modes.size() == 1 && m.modes[0].settings.display.palUi.mono && named >= 0 && plain < 0;
+            if (!ok) ++failures;
+            std::printf("%-62s %s\n", "Primo: B/W mode, fits only when named", ok ? "PASS" : "FAIL");
+        }
+    // Machines prepared from documentation: present, every mode
+    // click-only until measured; their signals never pick them by themselves.
+    for (const char* id : {"commodore-16-plus4", "amiga-500", "amiga-600", "amiga-1200", "ht-1080z", "zx81"}) {
+        int idx = findMachineIdx(ms, id);
+        bool ok = idx >= 0 && !ms[size_t(idx)].modes.empty();
+        if (ok)
+            for (const MachineMode& md : ms[size_t(idx)].modes) ok &= md.match.manual;
+        if (!ok) ++failures;
+        std::printf("%-62s %s\n", (std::string("built-in ") + id + ": present, all modes click-only").c_str(), ok ? "PASS" : "FAIL");
+    }
+    expect("C16/Plus/4-like composite (49.86 Hz, 285 cycles)", ms, sog(49.86, 285, 0), "Generic PAL", "Composite 8x");
+    expect("Amiga-like composite (50.08 Hz, 283.75 cycles)", ms, sog(50.08, 283.75, 0), "ZX Spectrum (PAL)", "Composite 8x");
+
     // The C64 choices stay as they were.
     expect("C64 composite (no burst on blue)", ms, sog(50.125, 283.5, 0), "Commodore 64 (PAL)", "Composite 8x");
     expect("C64 S-Video (burst on blue)", ms, sog(50.125, 283.5, 1), "Commodore 64 (PAL)", "S-Video 8x");

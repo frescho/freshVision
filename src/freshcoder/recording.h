@@ -41,6 +41,7 @@ struct RecordingInfo {
     pal::Standard standard = pal::Standard::Pal;
     bool standardTagged = false;
     pal::Standard taggedStandard = pal::Standard::Pal;
+    bool monoTagged = false;  // tag FRESHVISION_MONO: a black and white source (decoded without colour)
     bool rgb = false;
     bool svideoTagged = false;             // the recording carries the tag
     int tagLuma = 1, tagChroma = 2;        // its channels (when tagged)

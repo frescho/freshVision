@@ -71,9 +71,16 @@ or an RGB format. SECAM is not supported.
   II, MSX1). The machine modes set it.
 - **Apply timing** sets the card to that sampling (the device is reopened);
   **Restore SoG baseline** puts the card's default Sync-on-Green timing back.
+  **Card's detected timing** is the starting point for a machine freshVision
+  doesn't know yet: decoding and auto-tune go off and the card's own timing for
+  the signal it detects comes back, so you see the plain (green) picture as the
+  card captures it and can refine it from there (`--pal-timing card`).
 
 Decoding options (below the timing):
 
+- **Black and white source (no colour burst)**: for a machine without colour
+  (the Microkey Primo): no burst is looked for, black is taken on each line,
+  and the picture is grey instead of green (`--pal-mono`).
 - **Average colour of line pairs**: the PAL method against "Hanover bars"
   (alternating line colour errors). On by default.
 - **colour smoothing**: how many carrier cycles the colour is averaged over.
@@ -212,6 +219,39 @@ There are two kinds:
   to it). **Right-click** a mode for more: the differences from the built-in
   mode, back to built-in, delete, or hide a built-in mode you never use
   (hidden ones are listed under the machine with a **show** button).
+
+### Detect unknown machine
+
+For a computer freshVision doesn't know yet, **Detect unknown machine** (experimental; or
+the option `--detect`) measures the source for a few seconds and proposes
+settings. Nothing changes until you click.
+
+![Detect unknown machine on a Commodore 64 (composite): the proposal with its reasons, applied](images/freshvision-detect.png)
+
+- It works on every kind of input: **digital** (DVI/HDMI: the size and
+  pixels sent twice or more; no crop), **analog RGB** (the
+  sampling, the picture's size; phase and position follow from the RGB
+  auto-tune), **composite** and **S-Video** on the Sync-on-Green input
+  (PAL or NTSC from the frame rate, colour or black and white from the colour
+  burst, which wire carries the colour, the line length from the line rate
+  and the colour carrier, 8x sampling; the levels follow from auto-tune).
+- For composite, the capture switches to RGB at 8x while it measures, so it
+  can see the colour burst on every wire.
+- The result shows each setting with its reason (hover the value), a
+  confidence, warnings (for example when the card locked onto twice the
+  line rate: re-plug the cable), and the known machines with the same
+  timing ("Timing like").
+- **Apply detected settings** uses them; **Save as My mode** stores them as
+  a new machine in the group "Detected" (click-only), which you can tune and
+  save over like any other mode.
+- For composite and S-Video no pixel clock is shown: from one picture a
+  pixel can't be told from a double-wide one. On RGB, the sampling is changed
+  only when the pixel grid is clear.
+- A digital source is captured 1:1 at the size the card detects, black bars
+  included (crop afterwards if needed: a PC screen can be almost all black).
+  Pixels sent twice or more are only reported, never changed. A scaler that smooths its
+  output (for example a C64 through a RetroScaler2x line doubler) reads as
+  "as sent", because its doubled lines are not exact copies.
 
 ### Saving
 

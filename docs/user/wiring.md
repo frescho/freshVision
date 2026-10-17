@@ -73,4 +73,5 @@ applied (Machines section).
 | Commodore 64 (PAL) | composite, S-Video, and RGB through a scan converter | full speed (50 frames/s), colour |
 | MSX1, Casio MX-10 (NTSC) | composite | 60 frames/s, colour |
 | Apple IIc (NTSC) | composite | colour, but the card holds its picture only at ~8 frames/s in colour graphics (see Troubleshooting) |
+| Microkey Primo | composite (black and white) | full speed (50 frames/s), grey picture |
 | BBC Micro Model B, ZX Spectrum | prepared from documentation | untested |

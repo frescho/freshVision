@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "presets.h"
+#include "platform.h"
 
 #include "formats.h"
 
@@ -163,6 +164,7 @@ void writePresetSettings(std::ostream& f, const Preset& p) {
     f << "pal_chroma_cycles=" << u.chromaCycles << "\n";
     f << "pal_edge_desat=" << u.edgeDesat << "\n";
     f << "pal_soft_text=" << (u.softText ? 1 : 0) << "\n";
+    f << "pal_mono=" << (u.mono ? 1 : 0) << "\n";
     f << "pal_brightness=" << u.picture.brightness << "\n";
     f << "pal_contrast=" << u.picture.contrast << "\n";
     f << "pal_saturation=" << u.picture.saturation << "\n";
@@ -272,6 +274,7 @@ Preset parsePresetSettings(std::map<std::string, std::string> kv) {
         u.chromaCycles = std::clamp(int(num("pal_chroma_cycles", 2)), 1, 12);
         u.edgeDesat = float(std::clamp(num("pal_edge_desat", 0), 0.0, 1.0));
         u.softText = num("pal_soft_text", 0) != 0;
+        u.mono = num("pal_mono", 0) != 0;
         u.picture.brightness = float(num("pal_brightness", 0));
         u.picture.contrast = float(num("pal_contrast", 1));
         u.picture.saturation = float(num("pal_saturation", 1));
@@ -332,13 +335,7 @@ Preset parsePresetSettings(std::map<std::string, std::string> kv) {
     return p;
 }
 
-std::string configDir() {
-    const char* cfg = std::getenv("XDG_CONFIG_HOME");
-    if (cfg && *cfg) return (fs::path(cfg) / "freshvision").string();
-    const char* home = std::getenv("HOME");
-    if (!home || !*home) return {};
-    return (fs::path(home) / ".config" / "freshvision").string();
-}
+std::string configDir() { return settingsBaseDir(); }
 
 std::string presetsDir() {
     if (configDir().empty()) return {};

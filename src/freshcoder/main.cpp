@@ -2,6 +2,9 @@
 // freshCoder: turns a freshVision raw composite recording (the card's samples
 // plus sound) into a colour video. GUI by default; `--encode` for batch use.
 //
+#ifdef _WIN32
+#define SDL_MAIN_HANDLED  // our own main(), no SDL2main
+#endif
 #include <SDL.h>
 #include <imgui.h>
 #include <imgui_impl_opengl3.h>
@@ -23,6 +26,7 @@
 #include "display.h"
 #include "encode.h"
 #include "palui.h"
+#include "platform.h"
 #include "process.h"
 #include "recording.h"
 #include "settings.h"
@@ -73,6 +77,7 @@ void usage() {
         "  --relock                 re-align rolling frames at their vertical sync, black per line (Apple IIc)\n"
         "  --colour-smoothing N     colour averaged over N carrier cycles (default 2; more fades fringes)\n"
         "  --edge-colour F          reduce colour where brightness has fine detail (0-1, default 0)\n"
+        "  --mono                   black and white source (no colour burst); also from the tag FRESHVISION_MONO\n"
         "  --soft-text              two-colour text screens: blends of the two palette colours (no fringes)\n"
         "  --no-pll                 no carrier tracking; --pll-speed F (0..1, default 0.2)\n"
         "  --brightness F --contrast F --saturation F --hue DEG --gamma F   picture controls\n"
@@ -146,6 +151,7 @@ bool parseArgs(int argc, char** argv, Options& o) {
         else if (a == "--remove-stripes") o.ui.removeStripes = true;
         else if (a == "--relock") o.ui.relock = true;
         else if (a == "--soft-text") o.ui.softText = true;
+        else if (a == "--mono") o.ui.mono = true;
         else if (a == "--edge-colour") { if (!next(v)) return false; o.ui.edgeDesat = float(std::clamp(std::atof(v.c_str()), 0.0, 1.0)); }
         else if (a == "--colour-smoothing") { if (!next(v)) return false; o.ui.chromaCycles = std::clamp(std::atoi(v.c_str()), 1, 12); }
         else if (a == "--no-pll") o.ui.pll = false;
@@ -968,5 +974,9 @@ int main(int argc, char** argv) {
         }
         return runBatch(o);
     }
+#ifdef _WIN32
+    SDL_SetMainReady();
+#endif
+    fv::hideOwnConsole();
     return runGui(o);
 }

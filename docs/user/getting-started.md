@@ -136,7 +136,12 @@ Start **freshVision** from the desktop menu (or run `freshvision`).
 - For the machines it knows (Commodore 64, ZX Spectrum, BBC Micro, MSX1,
   Apple II and generic PAL/NTSC), the **Machines** section shows which machine
   and mode match the signal, and freshVision switches to that mode by itself
-  a few seconds after the source changes (you can turn that off).
+  a few seconds after the source changes (you can turn that off). Machines
+  prepared from documentation (Commodore 16 / Plus/4, Amiga 500/600/1200,
+  HT 1080Z, ZX81) and the Primo are applied by a click.
+- For a machine freshVision doesn't know, **Detect unknown machine** in the
+  Machines section (experimental) measures the source and proposes settings
+  (see the freshVision guide, "Detect unknown machine").
 - Settings are kept in `~/.config/freshvision/` (your machine modes,
   palettes, the last device and window size). Recordings go to your Videos
   folder by default.

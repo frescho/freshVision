@@ -66,6 +66,15 @@ struct MachinePanelState {
     std::vector<std::string> errors;                // unreadable lines in the files
     bool autoSwitch = true;
     std::string folder;
+    // Detect unknown machine.
+    bool detectBusy = false, detectDone = false, detectApplied = false, detectRecognised = false;
+    std::vector<std::string> detectProgress;
+    std::string detectSummary, detectTimingLike;
+    struct DetectReason {
+        std::string what, value, why;
+    };
+    std::vector<DetectReason> detectReasons;
+    std::vector<std::string> detectWarnings;
 };
 
 // Everything the Audio panel needs to draw itself; main.cpp fills this each
@@ -217,6 +226,9 @@ struct GuiActions {
     std::function<void()> runRgbAutoTune;
     // Takes the last measured picture area as the machine's screen size.
     std::function<void()> useMeasuredScreen;
+    // Detect unknown machine: measure, propose; apply / save only on a click.
+    std::function<void()> startDetect, cancelDetect, applyDetected;
+    std::function<void(const std::string& name)> saveDetected;
 };
 
 class Gui {
@@ -270,6 +282,7 @@ private:
     int saveTarget_ = -1;  // machine the "Save current as mode" goes into (-1: the active one)
     char machineGroupBuf_[64] = "";
     char machineSearchBuf_[64] = "";
+    char detectNameBuf_[64] = "";
     bool saveConditions_ = true, saveSound_ = false;
     int prefillMachine_ = -2, prefillMode_ = -2;  // the active mode the save row was last filled from
 

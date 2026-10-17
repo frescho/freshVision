@@ -3,7 +3,7 @@
 
 #include <SDL.h>
 #include <epoxy/gl.h>
-#include <linux/videodev2.h>
+#include "v4l2compat.h"
 
 #include <algorithm>
 #include <cmath>

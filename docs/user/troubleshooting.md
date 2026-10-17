@@ -88,6 +88,8 @@ shown in the Recorder section. Try another encoder or a smaller size.
 
 - Machines with the same timing can't be told apart (ZX Spectrum and BBC
   Micro; Apple II and MSX1): their modes are "(manual)", click the right one.
+  **Detect unknown machine** names them under "Timing like" but doesn't pick
+  one: one picture's colours don't tell such machines apart.
 - From a cold start the C64's S-Video mode is tried first while freshVision
   can't yet tell whether the blue input carries colour; with plain composite it
   moves on to the composite mode within a second or two.

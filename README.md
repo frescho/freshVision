@@ -5,7 +5,7 @@ card on Linux, made with retro computers in mind. **freshCoder**, which comes
 with it, turns freshVision's raw composite recordings into finished colour
 videos.
 
-Version 0.1.0. Free software under the GPL-3.0-or-later. **An independent
+Version 0.1.1. Free software under the GPL-3.0-or-later. **An independent
 project, not affiliated with or endorsed by Datapath.**
 
 ![freshVision showing an MSX1 on composite, decoded in software](docs/user/images/freshvision-msx-window.png)
@@ -24,14 +24,20 @@ project, not affiliated with or endorsed by Datapath.**
 - **Machine modes** for the Commodore 64 (PAL/NTSC), ZX Spectrum, BBC Micro,
   MSX1, Apple II and generic PAL/NTSC: freshVision recognises the signal and
   switches to the right mode by itself. Your own machines and modes are plain
-  text files.
+  text files. Modes prepared from documentation for the Commodore 16 and
+  Plus/4, Amiga 500/600/1200, HT 1080Z and ZX81, and the Microkey Primo, are
+  applied by a click.
+- **Detect unknown machine** (experimental): measures any source (digital,
+  analog RGB, composite, S-Video) and proposes settings, each with its reason
+  and a confidence, to apply or save as your own mode.
 - **Sound**: capture from the PC's sound inputs, monitoring with delay, WAV.
 - **Recording** to Matroska with sound: NVENC, VAAPI, x264 or lossless FFV1;
   raw composite recordings that freshCoder can decode again later with other
   settings, at sizes up to 2160p or pixel-exact.
 
 Tested with a VisionHD4 card, a Commodore 64 (composite, S-Video, RGB through
-a scan converter), an MSX1 (Casio MX-10) and an Apple IIc.
+a scan converter, HDMI through a line doubler), an MSX1 (Casio MX-10), an
+Apple IIc and a Microkey Primo.
 
 ## Requirements
 

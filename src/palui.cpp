@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "palui.h"
+#include "platform.h"
 
 #include <algorithm>
 
@@ -24,9 +25,7 @@ std::vector<std::array<uint8_t, 3>> chosenPalette(const PalDecodeUi& s) {
 }
 
 std::string paletteFolder() {
-    const char* cfg = std::getenv("XDG_CONFIG_HOME");
-    const char* home = std::getenv("HOME");
-    std::string dir = (cfg && *cfg ? std::string(cfg) : std::string(home ? home : ".") + "/.config") + "/freshvision/palettes";
+    std::string dir = (std::filesystem::u8path(settingsBaseDir()) / "palettes").u8string();
     std::error_code ec;
     std::filesystem::create_directories(dir, ec);
     return dir;
@@ -79,6 +78,11 @@ bool savePaletteFile(const std::string& path, const std::vector<std::array<uint8
 
 bool drawPalDecodeControls(PalDecodeUi& s, bool withPll, const PalGridStatus* grid) {
     bool changed = false;
+    changed |= ImGui::Checkbox("Black and white source (no colour burst)", &s.mono);
+    if (ImGui::IsItemHovered())
+        ImGui::SetTooltip("For a machine without colour (e.g. a Microkey Primo): no burst is looked for, black is\n"
+                          "read on each line's back porch and the brightness is taken unfiltered (full detail).\n"
+                          "The picture is grey instead of green.");
     changed |= ImGui::Checkbox("Average colour of line pairs (against Hanover bars)", &s.averageLines);
     ImGui::SetNextItemWidth(120);
     changed |= ImGui::SliderInt("colour smoothing", &s.chromaCycles, 1, 12, "%d cycles");

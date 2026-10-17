@@ -1090,6 +1090,57 @@ int gridNegativeTest() {
     return ok ? 0 : 1;
 }
 
+// Black and white (DecodeParams::mono): a luma-only signal (no burst) at 4x
+// and 8x, with noise and with blanking at code 0: every output point must be
+// grey (R=G=B) and each bar's brightness the luma the generator put in.
+int monoTests() {
+    struct M { const char* name; int K; double noise, lift; };
+    const M ms[] = {{"B/W 4x", 4, 0, 64}, {"B/W 8x", 8, 0, 64}, {"B/W 8x, noise sigma 3", 8, 3, 64},
+                    {"B/W 8x, blanking at code 0", 8, 0, 0}};
+    int failures = 0;
+    for (const M& m : ms) {
+        pal::GenParams g;
+        g.chroma = false;
+        g.samplesPerCycle = m.K;
+        g.samplesPerLine = 1135 * m.K / 4;
+        g.windowStart = 90 * m.K / 4;
+        g.width = 1024 * m.K / 4;
+        g.noiseCodes = m.noise;
+        g.liftCode = m.lift;
+        const auto raw = pal::generate(g, pal::colourBars);
+        const double fs = g.samplesPerLine * g.lineRate;
+        pal::DecodeParams dp;
+        dp.mono = true;
+        dp.samplesPerCycle = m.K;
+        dp.burstLen = 8 * m.K;
+        dp.activeStart = int(std::lround(10.5e-6 * fs)) - g.windowStart;
+        dp.activeLen = int(std::lround(52e-6 * fs));
+        pal::DecodeInfo info;
+        const auto rgb = pal::decode(raw.data(), g.width, g.lines, dp, &info);
+        int maxSpread = 0;
+        double worst = 0;
+        for (int b = 0; b < 8; ++b) {
+            const double x = (b + 0.5) / 8;
+            const pal::Rgb c = pal::colourBars(x);
+            const double want = 255 * (0.299 * c.r + 0.587 * c.g + 0.114 * c.b);
+            const int col = int(x * dp.activeLen);
+            double sum = 0;
+            int n = 0;
+            for (int l = 10; l < g.lines - 10; ++l) {
+                const uint8_t* o = &rgb[(size_t(l) * dp.activeLen + col) * 3];
+                maxSpread = std::max({maxSpread, std::abs(o[0] - o[1]), std::abs(o[1] - o[2])});
+                sum += o[1], ++n;
+            }
+            worst = std::max(worst, std::abs(sum / n - want));
+        }
+        const bool ok = !info.colour && maxSpread == 0 && worst <= 4.0;
+        failures += !ok;
+        std::printf("%-58s %s  worst bar brightness error %4.1f  colour spread %d  blank %.1f\n", m.name, ok ? "PASS" : "FAIL",
+                    worst, maxSpread, info.blankCode);
+    }
+    return failures;
+}
+
 int runTests() {
     std::vector<Case> cases;
     pal::GenParams base;  // 4xFsc, 1135/line, window from sample 90, 1024 wide, lift 64
@@ -1194,6 +1245,7 @@ int runTests() {
     failures += ntscTests();
     failures += tmsTest(1, 95.0);
     failures += relockTests();
+    failures += monoTests();
     failures += gridNegativeTest();
     failures += tmsTest(2, 40.0);  // fine colour detail: composite can't resolve it (the check: not worse than per pixel)
     std::printf("%s\n", failures ? "SOME REQUIRED CASES FAILED" : "all required cases passed");
