@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 // ALSA audio capture, one worker thread per device, plus a small mixer that
 // routes several sources' channels into one output stream:
 // a fixed-channel router ("record the C64 and a microphone
@@ -31,7 +32,7 @@ struct AudioDeviceInfo {
 std::vector<AudioDeviceInfo> enumerateAudioDevices();
 // Enumerates playback-capable ALSA PCM devices, same way. Needed because
 // PipeWire/PulseAudio's "default" sink is not necessarily what a human is
-// actually listening to (found 2026-09-23: on this machine "default"
+// actually listening to (found in testing: "default"
 // resolves to the HDMI-monitor output, not the onboard analog jack real
 // speakers/headphones are on — AudioMixer::startMonitor("default", ...)
 // was therefore correctly playing audio, just to a device nobody could
@@ -45,7 +46,7 @@ inline int channelModeCount(ChannelMode m) { return m == ChannelMode::SeparateLR
 
 // Where a logical (input) channel lands on output: mirrors ChannelMode's
 // Left/Right/Stereo so routing reads the same way on both ends (user
-// feedback, Phase B Step 2, 2026-09-23: "if you use left, right, stereo in
+// feedback: "if you use left, right, stereo in
 // input use the same on output"). Stereo here means "audible on both output
 // channels", not "this source is stereo" — for a mono logical channel that's
 // the deliberate default (see RoutedSource) so a newly added source is never
@@ -84,7 +85,7 @@ public:
 
     // Hardware mixer access for this device's own capture level/routing,
     // via the generic ALSA simple-mixer API (snd_mixer_* — standard Linux
-    // kernel/ALSA, nothing Datapath-specific). User feedback, 2026-09-23:
+    // kernel/ALSA, nothing Datapath-specific). User feedback:
     // "I prefer [volume set on] the [hardware mixer]" and "make it
     // possible to switch between front and back microphone and line
     // inputs". ALSA has no generic API for "which mixer control feeds PCM
@@ -141,11 +142,11 @@ private:
 
 // One active source in the router: a capture device, its channel mode, where
 // its logical channel(s) land on output, a volume/balance, and an artificial
-// extra delay (M2 step 8) so a fast source can be pushed back to line up
+// extra delay so a fast source can be pushed back to line up
 // with video's own latency. Defaults are chosen so a freshly added source is
 // audible immediately (route Stereo = both output channels, gain 1.0,
 // balance centered) rather than silently landing nowhere — the exact
-// failure the user hit in Phase B Step 2 (2026-09-23).
+// failure seen in testing.
 struct RoutedSource {
     std::string deviceId;
     ChannelMode mode = ChannelMode::Stereo;
@@ -156,7 +157,7 @@ struct RoutedSource {
     // panel drives that instead (AudioMixer::setHwVolume()/setHwBalance())
     // and these two stay at their neutral values, per the user's stated
     // preference for the hardware mixer over a software multiply
-    // (2026-09-23: "I prefer the second option").
+    // (the preferred option).
     float gain = 1.0f;     // linear multiplier, 0 = silent, 1 = unity, clamped to [0, 4] when mixed
     float balance = 0.0f;  // -1 = full left .. +1 = full right; only affects a Stereo route
     int delayMs = 0;
@@ -174,7 +175,7 @@ struct HwAudioInfo {
     std::string currentInputSource;
 };
 
-// Writes an interleaved S16LE PCM stream to a standard RIFF/WAVE file (M2
+// Writes an interleaved S16LE PCM stream to a standard RIFF/WAVE file
 // step 9): a fixed 44-byte header written up front with placeholder sizes,
 // patched in stop() once the real length is known. 16-bit only for now (the
 // capture path negotiates S16; 24-bit output would need capturing at that
@@ -198,10 +199,10 @@ private:
 };
 
 // Combines the active sources into one interleaved S16 stream at a fixed
-// rate/channel count; can play it live to a monitor device (M2 step 7) and/or
-// record it to a WAV file (M2 step 9). Tracks the first source's hardware
+// rate/channel count; can play it live to a monitor device and/or
+// record it to a WAV file. Tracks the first source's hardware
 // frame count against wall-clock time so main.cpp can report audio/video
-// clock drift (M2 step 10) without this class knowing anything about video.
+// clock drift without this class knowing anything about video.
 class AudioMixer {
 public:
     ~AudioMixer();
@@ -231,7 +232,7 @@ public:
     // mixWorkerMain() tick, and starting it fresh also seems to cost a
     // brief burst of underruns while PipeWire's own buffering settles,
     // independent of anything in this codebase; found chasing "stop then
-    // start monitor sounds choppy", 2026-09-23). If it's already open on
+    // start monitor sounds choppy"). If it's already open on
     // the same device, this is just a flag flip — no reconnect, no
     // reopen-triggered glitch. stopMonitor() likewise never closes the
     // device, just silences it, so a Stop/Start pair costs nothing.
@@ -241,8 +242,8 @@ public:
     // whether a device happens to be held open — see above).
     bool monitoring() const { return monitorActive_; }
 
-    // Hardware-mixer volume for the monitor's own playback device (2026-09-23
-    // backlog item 4) — mirrors AudioCapture's Hw*() pattern, but scoped to a
+    // Hardware-mixer volume for the monitor's own playback device
+    // — mirrors AudioCapture's Hw*() pattern, but scoped to a
     // real hw:-device override (see openHwPlaybackMixer() in audio.cpp);
     // "default" has no single hardware level to control and stays
     // software-only. false/0 if the current monitor device is "default" or
@@ -255,7 +256,7 @@ public:
 
     // Called with each tick's mixed output (interleaved S16, `outputChannels`
     // wide, `framesPerTick` frames, a CLOCK_MONOTONIC/steady_clock ns
-    // timestamp) right after it's computed — the M3 Recorder hooks in here
+    // timestamp) right after it's computed — the Recorder hooks in here
     // via main.cpp so a recording's audio always matches exactly what the
     // monitor plays and the WAV writer records. Set to nullptr to detach.
     // Called from the mixer's own thread; must not block or throw.
@@ -270,7 +271,7 @@ public:
     AudioCounters mixCounters() const;
     // Hardware frames captured so far by the first active source, and the
     // wall-clock time (ns, CLOCK_MONOTONIC) that source was added — the pair
-    // main.cpp needs to compute audio-vs-system-clock drift (M2 step 10).
+    // main.cpp needs to compute audio-vs-system-clock drift.
     // {0, 0} if no source is active yet.
     std::pair<uint64_t, int64_t> driftReference() const;
 
@@ -278,7 +279,7 @@ public:
     // lock is only *tried*; if the audio thread holds it right now, the
     // last values seen are returned instead. The GUI must never wait for
     // the audio thread: it did, and starved for seconds per frame while the
-    // mixer held monitorMu_ in a blocking write (2026-09-28).
+    // mixer held monitorMu_ in a blocking write.
     // Button actions keep using the exact, blocking getters above.
     struct DisplayState {
         std::vector<RoutedSource> sources;
@@ -324,7 +325,7 @@ private:
     size_t monitorPrefillFrames_ = 0;  // silence queued ahead of the monitor device at open/after an underrun
     // Set by every successful startMonitor(); mixWorkerMain() then empties the
     // capture and delay queues and restarts its tick schedule from "now", so
-    // nothing queued before a switch is carried over (user request 2026-09-28).
+    // nothing queued before a switch is carried over.
     std::atomic<bool> resyncRequested_{false};
     void closeMonitorHandleLocked();  // real teardown; caller must hold monitorMu_
 

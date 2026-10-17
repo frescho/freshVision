@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 // Runtime enumeration and by-name access of V4L2 controls (clean-room: no
 // control IDs or names are hard-coded; whatever the driver reports is used).
 #pragma once

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 #include "gui.h"
 
 #include <imgui.h>
@@ -63,7 +64,7 @@ void drawOneControl(const ControlInfo& c, const GuiActions& actions) {
     if (disabled) ImGui::BeginDisabled();
     // Sliders and combos fill the row, so their hint goes on a separate name
     // line above them; anything placed after them on the same row got
-    // clipped by the panel edge (2026-09-28: "def 32" showing as "d").
+    // clipped by the panel edge (a value like "def 32" showing as "d").
     bool hintDrawn = false;
 
     switch (c.type) {
@@ -138,8 +139,8 @@ const char* encoderLabel(VideoEncoderKind k) {
 }
 
 // The settings the recorder really uses (FFmpeg defaults; nothing is tuned
-// yet), in plain words. FFV1 is fed RGB, so it is pixel-exact (verified
-// 2026-09-28); the H.264 encoders convert to 4:2:0 colour.
+// yet), in plain words. FFV1 is fed RGB, so it is pixel-exact (verified).
+// The H.264 encoders convert to 4:2:0 colour.
 const char* encoderDescription(VideoEncoderKind k) {
     switch (k) {
         case VideoEncoderKind::Nvenc: return "H.264 on the graphics card, preset p4, automatic quality, 4:2:0 colour.";
@@ -156,7 +157,7 @@ const char* encoderDescription(VideoEncoderKind k) {
     return "";
 }
 
-// Measured on the C64 (672x504, 50 fps), 2026-09-28. FFV1 is
+// Measured on the C64 (672x504, 50 fps). FFV1 is
 // scaled by pixel rate (~1.06 bytes per pixel there); the H.264 figures
 // depend mostly on how much moves, so they're given as measured, not scaled.
 std::string sizeEstimate(VideoEncoderKind k, uint32_t w, uint32_t h, double fps) {
@@ -228,7 +229,7 @@ void Gui::draw(bool visible, const std::string& statsText, const std::vector<Con
         return;
     }
 
-    // One control column on the left (user, 2026-09-29: freshCoder's layout
+    // One control column on the left (freshCoder's layout
     // over the floating panels), full height, width adjustable by dragging
     // its right edge; the picture fills the rest (main.cpp reads
     // panelWidth()). Sections collapse; Tab hides the whole column.
@@ -303,14 +304,14 @@ void Gui::draw(bool visible, const std::string& statsText, const std::vector<Con
         }
         ImGui::Separator();
         // Decode PAL = composite on Green; S-Video under it = the two-wire
-        // connection, Y (with sync) on Green and C on Blue or Red (user 2026-09-30).
+        // connection, Y (with sync) on Green and C on Blue or Red.
         const bool canDecode = geom.grey8 || geom.rgbChannels;
         ImGui::BeginDisabled(!canDecode);
         if (ImGui::Checkbox("Decode", &dispOpts.palDecode) && !dispOpts.palDecode) dispOpts.palSvideo = false;
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("A composite colour signal on the Green input, decoded to colour.");
         ImGui::SameLine();
         {
-            // The colour standard: PAL (default) or NTSC; SECAM later (user 2026-09-30).
+            // The colour standard: PAL (default) or NTSC; SECAM later.
             static const char* stds[] = {"PAL", "NTSC", "SECAM (later)"};
             ImGui::SetNextItemWidth(ImGui::CalcTextSize("NTSC").x + ImGui::GetStyle().FramePadding.x * 2.0f + ImGui::GetFrameHeight());
             if (ImGui::BeginCombo("##standard", stds[std::clamp(dispOpts.videoStandard, 0, 1)])) {
@@ -367,7 +368,7 @@ void Gui::draw(bool visible, const std::string& statsText, const std::vector<Con
         dispOpts.palUi.lumaFilterUnused = dispOpts.palDecode && dispOpts.palSvideo;
         drawPalDecodeControls(dispOpts.palUi, true, &geom.palGrid);
         {
-            // 4x, 8x and 10x (user, 2026-09-29): from 12x on the card doesn't
+            // 4x, 8x and 10x: from 12x on the card doesn't
             // deliver a fully correct frame on this input, and
             // 16x gives unusable samples.
             // NTSC also 6x and 12x (an MSX pixel = 4 / 8 samples).
@@ -397,7 +398,7 @@ void Gui::draw(bool visible, const std::string& statsText, const std::vector<Con
         if (ImGui::Button("Restore SoG baseline") && actions.setPalTiming) actions.setPalTiming(0);
         if (!geom.autoStatus.empty()) ImGui::TextWrapped("auto-tune: %s", geom.autoStatus.c_str());
         ImGui::Separator();
-        // M4 step 4: analog RGB sources (not the composite path).
+        // Analog RGB sources (not the composite path).
         ImGui::BeginDisabled(geom.grey8);
         if (ImGui::Checkbox("Auto-tune RGB", &dispOpts.rgbAutoTune) && dispOpts.rgbAutoTune && actions.runRgbAutoTune)
             actions.runRgbAutoTune();
@@ -446,7 +447,7 @@ void Gui::draw(bool visible, const std::string& statsText, const std::vector<Con
         }
         }
     if (ImGui::CollapsingHeader("Controls", 0)) {
-        // User feedback, 2026-09-23: "it was not that obvious how to get
+        // User feedback: "it was not that obvious how to get
         // back to defaults" after changing several controls via a preset.
         if (ImGui::Button("Reset all to defaults") && actions.resetAllControls) actions.resetAllControls();
         ImGui::Separator();
@@ -616,7 +617,7 @@ void Gui::draw(bool visible, const std::string& statsText, const std::vector<Con
         // Monitor output device: PipeWire/PulseAudio's "default" is not
         // necessarily what's actually connected to speakers/headphones (a
         // real case on this machine: "default" is the HDMI-monitor output,
-        // not the onboard analog jack — found 2026-09-23, Phase B Step 2).
+        // not the onboard analog jack).
         // Picking a device is therefore front and center, not buried.
         ImGui::Text("Monitor output:");
         ImGui::SameLine();
@@ -640,7 +641,7 @@ void Gui::draw(bool visible, const std::string& statsText, const std::vector<Con
         ImGui::SameLine();
         if (ImGui::Button(audio.monitoring ? "Stop monitor" : "Start monitor") && actions.toggleAudioMonitor)
             actions.toggleAudioMonitor(!audio.monitoring);
-        // Sound vs. picture (backlog 6): the monitor sound reaches you later
+        // Sound vs. picture: the monitor sound reaches you later
         // than the picture; the picture can wait for it (adds latency, so
         // off by default; recordings don't need it, they carry timestamps).
         ImGui::Checkbox("Line the picture up with the monitor sound", &dispOpts.delayPictureToSound);
@@ -654,7 +655,7 @@ void Gui::draw(bool visible, const std::string& statsText, const std::vector<Con
                                     : "");
         else
             ImGui::TextDisabled("(start the monitor to measure the sound delay)");
-        // Hardware output volume (2026-09-23 backlog item 4), only offered
+        // Hardware output volume, only offered
         // for a real hw: device override -- "default" has no single
         // hardware level here and stays software-only, same split as a
         // source's own hwAudio entry above.
@@ -711,7 +712,7 @@ void Gui::draw(bool visible, const std::string& statsText, const std::vector<Con
                 }
 
                 // Prefer the hardware mixer over a software multiply when
-                // this device has one (user preference, 2026-09-23) — the
+                // this device has one (preferred) — the
                 // capture level is then set at the ALSA/codec level, same
                 // as alsamixer/Cinnamon's sound settings would, instead of
                 // scaling samples after the fact.
@@ -739,7 +740,7 @@ void Gui::draw(bool visible, const std::string& statsText, const std::vector<Con
                 }
                 // Physical input jack (Rear Mic / Front Mic / Line, ...) —
                 // only shown if this device actually has one to pick from
-                // (user feedback, 2026-09-23: "make it possible to switch
+                // (user feedback: "make it possible to switch
                 // between front and back microphone and line inputs").
                 if (hw && !hw->inputSources.empty()) {
                     std::string preview = hw->currentInputSource.empty() ? "(unknown)" : hw->currentInputSource;

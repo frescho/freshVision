@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 #include "presets.h"
 
 #include "formats.h"
@@ -143,7 +144,7 @@ void writePresetSettings(std::ostream& f, const Preset& p) {
     f << "display_pixel_aspect=" << p.display.pixelAspect << "\n";
     f << "display_integer_factor=" << p.display.integerFactor << "\n";  // 0 = Auto
     // PAL composite decoding (Sync-on-Green): a preset is also a machine
-    // profile (user request 2026-09-29).
+    // profile.
     const PalDecodeUi& u = p.display.palUi;
     f << "rgb_autotune=" << (p.display.rgbAutoTune ? 1 : 0) << "\n";
     f << "rgb_autocrop=" << (p.display.rgbAutoCrop ? 1 : 0) << "\n";

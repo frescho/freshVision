@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 // freshCoder: reads a freshVision raw composite recording (Matroska with one
 // gray video stream of the card's samples, PCM audio, and tags describing
 // how the samples were taken).

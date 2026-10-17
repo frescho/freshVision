@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 // paltool: exercise the PAL generator/decoder in pal.hpp.
 //   paltool test                                   accuracy suite on generated colour bars
 //   paltool gen OUT.raw [K] [lift]                 write generated colour bars (rows of 8-bit samples)
@@ -125,7 +126,7 @@ void filterReport(pal::LumaFilter f, const char* name, int& failures, double box
                 f == pal::LumaFilter::Notch ? (ok ? "PASS" : "FAIL") : "info", rise, ripple);
 }
 
-// Phase 3: a C64-style picture of palette pixels at the C64's pixel clock,
+// A C64-style picture of palette pixels at the C64's pixel clock,
 // through composite (8x, line 1134) and back: is the grid found, and how many
 // pixels come back as the right palette colour after sampling + snapping?
 // `run` pixels share a colour (2 = multicolour mode, 1 = hires).
@@ -1252,7 +1253,7 @@ int main(int argc, char** argv) {
                             p.lines, nt, ms);
             }
         }
-        // Phase 3 stage on a decoded 8x C64 frame: grid + calibrated snapping.
+        // Pixel-grid stage on a decoded 8x C64 frame: grid + calibrated snapping.
         {
             const auto& c64 = pal::machineProfiles()[1];
             pal::GenParams p;

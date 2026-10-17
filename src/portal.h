@@ -1,7 +1,8 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 // The desktop's file-chooser portal (org.freedesktop.portal.FileChooser over
 // D-Bus): folder and file dialogs that work the same in a normal install and
 // inside a Flatpak sandbox, where `zenity` doesn't exist (release 0.1.0,
-// step A7). desktop.cpp falls back to zenity when no portal is running.
+// desktop.cpp falls back to zenity when no portal is running.
 #pragma once
 
 #include <atomic>

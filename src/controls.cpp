@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 #include "controls.h"
 
 #include <linux/videodev2.h>

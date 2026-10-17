@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 // Offline test of the RGB auto-tune (src/rgbtune.*): a simulated analog
 // source whose picture sharpness depends on Phase and whose position moves
 // with Horizontal/Vertical Position. Checks that the tuner finds the

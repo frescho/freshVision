@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 // Offline test of the machine matching (src/machines.*) with the built-in
 // machine files: which mode a detected source picks by itself. Runs in a
 // temporary HOME, so the user's machine files are not touched.

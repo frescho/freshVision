@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 // Small bridges to the desktop: a folder picker dialog and "open this folder
 // in the file browser". Linux only for now: the dialogs go through the
 // desktop's file-chooser portal (portal.h; also inside a Flatpak), with

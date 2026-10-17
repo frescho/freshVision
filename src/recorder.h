@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 // Records video (whatever raw pixel layout the capture path delivers,
 // converted internally) and, optionally, one interleaved S16 PCM audio
 // stream, to a Matroska (.mkv) file via FFmpeg's libav* libraries — linked
@@ -57,7 +58,7 @@ public:
     Recorder& operator=(const Recorder&) = delete;
 
     // `width`/`height` fix the recording's canvas for its whole lifetime —
-    // a mode change or source switch mid-recording (M1/M2 already make the
+    // a mode change or source switch mid-recording (the capture already makes the
     // capture path itself survive these) does not resize the file; a source
     // frame of a different size is letterboxed (scaled, centered, black
     // bars) into this same canvas instead (a design decision:
@@ -65,7 +66,7 @@ public:
     // drifts", chosen over starting a new file segment per mode change).
     // `srcLayout` is the pixel byte order pushVideoFrame() will receive
     // (same as Display::upload()); it cannot change mid-recording (a format
-    // change, unlike a size change, does start a new segment — see M3 plan).
+    // change, unlike a size change, does start a new segment).
     // `audioRate`/`audioChannels` describe pushAudioFrame()'s input;
     // audioChannels = 0 means video-only. Tries `kind` (or, for Auto, Nvenc
     // then Vaapi then X264 in order) and reports which one actually opened.
@@ -91,7 +92,7 @@ public:
     // returns (well under a millisecond); a recorder thread converts and
     // encodes it. A frame is dropped (and counted) only when every slot is
     // still waiting to be encoded — the display loop is never held up by
-    // the encoder (2026-09-28: encoding here cut GUI recordings to ~16 fps).
+    // the encoder (encoding here cut GUI recordings to ~16 fps).
     void pushVideoFrame(const uint8_t* data, uint32_t srcWidth, uint32_t srcHeight, size_t stride, int64_t ptsNs);
     // Called from the audio mixer thread with its interleaved S16 output.
     // Only copies the block into a queue; a recorder thread encodes and
@@ -128,7 +129,7 @@ private:
     // thread (always running, independent of whether a recording is
     // active — see main.cpp's AudioMixer::setSink) could still be inside
     // pushAudioFrame: a real use-after-free window on every Stop, not just
-    // app shutdown. Found by review 2026-09-22, alongside the muxMu_ fix.
+    // app shutdown. Found by review, alongside the muxMu_ fix.
     void stopLocked();
 
     // FFmpeg contexts kept as void* so <libavcodec/...> stays out of every
@@ -146,7 +147,7 @@ private:
     // run on different threads (video thread / audio mixer thread) and a
     // single shared AVPacket* was mutated by both concurrently (receive/
     // rescale/unref) independent of the muxer write itself — found by the
-    // same review as the muxMu_ fix above, 2026-09-22.
+    // same review as the muxMu_ fix above.
     void* vPkt_ = nullptr;  // AVPacket* (video)
     void* aPkt_ = nullptr;  // AVPacket* (audio)
     int vStreamIdx_ = -1, aStreamIdx_ = -1;
@@ -164,7 +165,7 @@ private:
     // first; those two run on different threads under different mutexes
     // (vMu_/aMu_), so this one shared field needs its own synchronization
     // (a plain int64_t here was a genuine check-then-set data race across
-    // the two locks — found by review 2026-09-22, fixed with a CAS below).
+    // the two locks — found by review, fixed with a CAS below).
     std::atomic<int64_t> firstVideoPtsNs_{-1};
     int64_t lastVideoPts_ = -1;  // encoder time base; recorder thread only, keeps pts strictly increasing
     int64_t videoFrameCount_ = 0, audioSampleCount_ = 0;
@@ -179,7 +180,7 @@ private:
     // guard only their own stream's encode state, not that shared call, so
     // encodeVideoFrame/encodeAudioFrame each additionally take this one
     // around the actual write. Found via a real SIGSEGV inside
-    // av_interleaved_write_frame (gdb backtrace, 2026-09-22) — concurrent
+    // av_interleaved_write_frame (gdb backtrace) — concurrent
     // video/audio writes corrupting libavformat's internal muxer state;
     // also the likely cause of the earlier intermittent "Can't write packet
     // with unknown timestamp" warning (a milder symptom of the same race).

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 #include "audio.h"
 
 #include <alsa/asoundlib.h>
@@ -123,7 +124,7 @@ std::unique_ptr<HwCaptureMixer> openHwCaptureMixer(const std::string& card, int 
         // capable element: codecs like this one also expose separate boost
         // pre-amp stages ("Front Mic Boost", "Line Boost", ...) that also
         // report has_capture_volume() true but are a different control
-        // entirely (found 2026-09-23: matching on capability alone picked
+        // entirely (matching on capability alone picked
         // a boost control, stuck at 0, instead of the real level — hardware
         // volume always read 0 regardless of the actual level).
         if (snd_mixer_selem_has_capture_volume(e) && name && std::strcmp(name, "Capture") == 0) {
@@ -145,8 +146,8 @@ std::unique_ptr<HwCaptureMixer> openHwCaptureMixer(const std::string& card, int 
 // card-wide volume control named "Master" (falling back to "PCM" if a card
 // has no "Master") ahead of any per-device routing, so this doesn't need
 // AudioCapture's per-device ordinal matching — one mixer element per card is
-// enough. Deliberately scoped to real hw: device overrides only (2026-09-23
-// backlog item 4): "default" is PipeWire/PulseAudio's own mix target, which
+// enough. Deliberately scoped to real hw: device overrides only:
+// "default" is PipeWire/PulseAudio's own mix target, which
 // has no single hardware level to control here and stays software-only
 // (RoutedSource::gain, as before).
 struct HwPlaybackMixer {
@@ -613,7 +614,7 @@ void AudioMixer::removeSource(const std::string& deviceId) {
     // tick loop (paced at 20ms) needs every single tick. That routinely
     // ate most or all of one tick's time budget, causing a late write to
     // the ALSA/PipeWire monitor stream and the first real xrun — which,
-    // per this session's own testing, reliably cascaded into
+    // in testing, reliably cascaded into
     // ~10 seconds of continued underruns before things settled again,
     // matching the reported "jerky ... gets right if you let it run"
     // exactly. Fixed by moving the AudioCapture out of the vector under
@@ -790,7 +791,7 @@ bool AudioMixer::startMonitor(const std::string& playbackId, std::string& err) {
     }
     // The new device is opened and configured *before* the old stream is
     // closed, so a failed switch leaves the old one playing. Tearing down
-    // first made a failed switch silently stop the monitor (2026-09-28:
+    // first made a failed switch silently stop the monitor (
     // picking the hw: device PipeWire itself uses fails with EBUSY).
     snd_pcm_t* h = nullptr;
     int rc = snd_pcm_open(&h, playbackId.c_str(), SND_PCM_STREAM_PLAYBACK, 0);
@@ -809,7 +810,7 @@ bool AudioMixer::startMonitor(const std::string& playbackId, std::string& err) {
     // device is really running at rate_ (48000) — _near silently accepts
     // whatever the device's closest supported rate is without telling us,
     // so a device that doesn't offer exactly rate_ would play back
-    // pitch-/speed-shifted ("very strange", user-reported 2026-09-23 after
+    // pitch-/speed-shifted ("very strange", reported after
     // a stop/restart) with no error at all. Failing loudly here is safer
     // than silently mismatching; every device seen on this machine offers
     // 48000 exactly, so this should not make things harder in practice.
@@ -862,7 +863,7 @@ bool AudioMixer::startMonitor(const std::string& playbackId, std::string& err) {
     // Start with a few ticks of silence queued so the device runs that far
     // behind the clock-paced one-tick-at-a-time writer. Without it the
     // stream starts on the first 20 ms written and runs dry on any jitter;
-    // measured 2026-09-28: ~25 underruns/s on hw:CARD=PCH,DEV=0, and the
+    // measured: ~25 underruns/s on an onboard device, and the
     // same steady 25/s on "default" (PipeWire) for seconds at a time after
     // device switches.
     size_t prefill = kMonitorPrefillTicks * framesPerTick;
@@ -971,7 +972,7 @@ void AudioMixer::mixWorkerMain() {
                 for (int li = 0; li < logicalChannels; ++li) {
                     e.cap->pull(li, tmp.data(), framesPerTick);
 
-                    // M2 step 8: an artificial extra delay per source. Feed
+                    // An artificial extra delay per source. Feed
                     // this tick's freshly-pulled (real-time) samples into a
                     // FIFO, then take the output from its front so this
                     // source's contribution lags real-time by ~delayMs once
@@ -997,7 +998,7 @@ void AudioMixer::mixWorkerMain() {
                     // Volume + left/right balance, then route to one or
                     // both output channels (Left/Right/Stereo, mirroring
                     // ChannelMode so input and output read the same way —
-                    // user feedback, Phase B Step 2, 2026-09-23). Stereo
+                    // user feedback). Stereo
                     // pans between the two output channels via `balance`;
                     // Left/Right send the full (post-gain) signal to just
                     // one, matching what the name says rather than being an
@@ -1045,7 +1046,7 @@ void AudioMixer::mixWorkerMain() {
                 // — silence instead of outBuf — so the ALSA/PipeWire
                 // connection never idles or gets torn down: that's the
                 // whole point of startMonitor()'s reuse-if-already-open
-                // path (2026-09-23, chasing "stop then start sounds
+                // path (chasing "stop then start sounds
                 // choppy" — reopening cost ~20ms plus a settling-in burst
                 // of xruns each time, both avoided by never closing at all
                 // for a simple Stop/Start).
@@ -1078,7 +1079,7 @@ void AudioMixer::mixWorkerMain() {
         // this thread up): start the schedule over from now instead of
         // writing the missed ticks back-to-back. Racing to catch up meant
         // re-taking monitorMu_ without ever sleeping, which starved the GUI
-        // (2026-09-28).
+        //
         auto nowTp = std::chrono::steady_clock::now();
         if (nowTp - nextTick > 3 * tickPeriod) {
             nextTick = nowTp;

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 // freshCoder: turns a freshVision raw composite recording (the card's samples
 // plus sound) into a colour video. GUI by default; `--encode` for batch use.
 //

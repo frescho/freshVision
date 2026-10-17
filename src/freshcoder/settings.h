@@ -1,6 +1,7 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 // freshCoder: saving and loading its settings (decoding, picture, pixel grid
 // and palette, output picture, encoding, preview) as named files, plus the
-// last-used settings restored at the next start (user request 2026-09-29:
+// last-used settings restored at the next start (
 // "if I set something I should be able to save it").
 #pragma once
 

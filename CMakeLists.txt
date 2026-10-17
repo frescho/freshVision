@@ -42,7 +42,7 @@ add_library(imgui_backends STATIC
 target_include_directories(imgui_backends PUBLIC third_party/imgui third_party/imgui/backends)
 target_link_libraries(imgui_backends PUBLIC PkgConfig::SDL2 OpenGL::GL ${CMAKE_DL_LIBS})
 
-# freshvision: capture-to-display program (named freshvision-spike until 0.1.0). M0 was CLI-only; M1 adds the
+# freshvision: capture-to-display program. The first version was CLI-only; then came the
 # ImGui shell (src/gui.cpp) and a shader/PBO display path (src/display.cpp)
 # on top of it, keeping every command-line option of the first version
 # so the existing test recipes keep working.

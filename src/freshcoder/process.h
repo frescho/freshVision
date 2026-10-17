@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 // freshCoder: one frame of raw samples -> the output picture (decode, crop,
 // scale, pad), and the software PLL's per-frame carrier track.
 #pragma once
@@ -100,7 +101,7 @@ public:
     // Digital black/white levels from the last decoded frame: the picture
     // controls that put its darkest 0.5% at black and brightest 0.1% at 95%.
     bool autoLevels(fv::PalPicture& pic) const;
-    // Phase 3 pixel grid: current state, restart, or pin (the encode uses the preview's).
+    // Pixel grid: current state, restart, or pin (the encode uses the preview's).
     fv::PalGridStatus gridStatus() const;
     void redetectGrid() { stage_.redetect(); }
     void relearnPalette() { stage_.relearn(); }

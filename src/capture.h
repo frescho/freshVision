@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 // V4L2 capture (mmap streaming). A worker thread does the blocking DQBUF and
 // keeps only the newest frame in a one-slot mailbox; the main thread takes it.
 //

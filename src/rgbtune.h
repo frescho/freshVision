@@ -1,4 +1,5 @@
-// Auto-tune for analog RGB sources (M4 step 4): Phase (the sharpest
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Auto-tune for analog RGB sources: Phase (the sharpest
 // picture), Horizontal/Vertical Position (the picture centred in the
 // capture) and a crop to the picture's area. Measured on the captured
 // frames only; the controls are found by the names the driver reports.

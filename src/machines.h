@@ -1,4 +1,5 @@
-// Machine files (M4; two layers since 0.1.0): built-in machine files shipped
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Machine files (two layers since 0.1.0): built-in machine files shipped
 // with the program (`<prefix>/share/freshvision/machines/`, read-only, replaced
 // by every upgrade) and the user's "My modes" (`~/.config/freshvision/machines/`,
 // never touched by an upgrade). One human-readable file per machine, each

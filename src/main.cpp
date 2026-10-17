@@ -1,5 +1,6 @@
-// freshvision: capture-to-display program (freshvision-spike before 0.1.0). M0 was the
-// CLI-only spike; M1 adds the ImGui shell, live
+// SPDX-License-Identifier: GPL-3.0-or-later
+// freshvision: capture-to-display program. The first version was
+// command-line only; then came the ImGui shell, live
 // control/geometry panels and the shader/PBO display path on top of it.
 #include <algorithm>
 #include <ctime>
@@ -85,13 +86,13 @@ struct Options {
     std::string palDumpPath; // save one raw g8 frame (rows of samples) 3 s after the timing settles
     std::string dumpFramePath; // --dump-frame: one raw frame of any format, same moment
     Rect crop;
-    std::string recordAudioPath;  // M2 step 9; empty = don't auto-start recording
-    std::string recordVideoPath;  // M3; empty = don't auto-start recording
+    std::string recordAudioPath;  // empty = don't auto-start recording
+    std::string recordVideoPath;  // empty = don't auto-start recording
     std::string recordEncoder;    // empty = the GUI's default (Auto)
     std::string savePresetName;   // empty = don't auto-save a preset at startup
     std::string loadPresetName;   // empty = don't auto-load a preset at startup
     std::string presetGroup;      // optional group for --save-preset/--load-preset; empty = ungrouped
-    std::string machine;          // --machine NAME[/MODE]: apply at start (M4)
+    std::string machine;          // --machine NAME[/MODE]: apply at start
     int autoSwitch = -1;          // --auto-switch / --no-auto-switch; -1 = the saved choice
     bool listMachines = false;
     bool restoreMachines = false;
@@ -252,7 +253,7 @@ bool parseArgs(int argc, char** argv, Options& o) {
             else if (v == "12x") o.palTiming = 12;  // NTSC only (42.95 MHz; an MSX pixel = 8 samples)
             else if (v == "sog") o.palTiming = 0;
             else if (v == "16x") {
-                // Removed until the reason is known (user, 2026-09-29): the card
+                // Removed until the reason is known: the card
                 // doesn't really sample at 16x on this input.
                 std::fprintf(stderr, "--pal-timing 16x has been removed: the card delivers unusable samples at 16x; "
                                      "10x is the maximum\n");
@@ -615,7 +616,7 @@ int main(int argc, char** argv) {
     // region; it doesn't by itself change VIDIOC_S_FMT's width/height) --
     // the delivered frame silently stayed at the old, pre-crop size. Default
     // the capture size to the crop's own W,H so "--crop X,Y,W,H" alone does
-    // what it looks like it should (found 2026-09-23 chasing a report that
+    // what it looks like it should (found chasing a report that
     // cropping "doesn't scale up in steps as expected").
     uint32_t startW = opt.width;
     uint32_t startH = opt.height;
@@ -627,7 +628,7 @@ int main(int argc, char** argv) {
     std::signal(SIGTERM, onSignal);
 
     Display disp;
-    // Start window: the last size used, or about 1600x1000 (backlog 18: it
+    // Start window: the last size used, or about 1600x1000 (it
     // used to take the capture's shape, e.g. a 2048x298 "envelope").
     const std::string windowConf = [] {
         const char* cfg = std::getenv("XDG_CONFIG_HOME");
@@ -679,7 +680,7 @@ int main(int argc, char** argv) {
     bool clockReported = false;
     std::string statsText = "(warming up)";
     std::string statsPanel;
-    // Picture held back to line up with the monitor sound (backlog 6): a
+    // Picture held back to line up with the monitor sound: a
     // queue of frame copies in front of the display; N from the measured
     // sound delay minus the picture's own age, once a second.
     struct DelayedFrame {
@@ -746,7 +747,7 @@ int main(int argc, char** argv) {
     // from the line length; if a frame can't be
     // decided that way, the last decided parity is used.
     int64_t palSyncedSize = -1;  // Horizontal Size the Display panel's fields were last synced to
-    pal::GridStage palGrid;      // phase 3: the machine's pixels and palette (Display panel "Pixel grid")
+    pal::GridStage palGrid;      // the machine's pixels and palette (Display panel "Pixel grid")
     // Auto-tune: per-frame signal levels, summed over a half second.
     struct AutoTuneAcc {
         int frames = 0;
@@ -761,7 +762,7 @@ int main(int argc, char** argv) {
     int palGridW = 0;
     int palParity = -1;
     bool palParityHeld = false;
-    // Live software PLL (backlog 12): the carrier-frequency error per line,
+    // Live software PLL: the carrier-frequency error per line,
     // smoothed from each frame's measured step error and applied to the next
     // frame (freshCoder does the same from a whole-recording pass).
     float palPllErr = 0;
@@ -771,13 +772,13 @@ int main(int argc, char** argv) {
     std::string palStatus;
     // The Display section's copy: one item per line, fixed-width numbers,
     // renewed once a second (the one-line status reflowed 50 times a second
-    // as its numbers changed length, user 2026-09-30).
+    // as its numbers changed length).
     std::string palPanel;
     bool palCompositeNow = false;  // this frame was decoded as composite (auto-tune applies)
     int64_t palPanelNs = 0;
     double palPanelMsSum = 0;
     int palPanelMsCount = 0;
-    // Machines (M4): the source's refresh rate from the buffer timestamps and
+    // Machines: the source's refresh rate from the buffer timestamps and
     // the composite carrier's cycles per line, both measured since the last
     // (re)start; `streamGeneration` counts (re)starts.
     bool palDumped = false, frameDumped = false;
@@ -870,7 +871,7 @@ int main(int argc, char** argv) {
         restart("geometry change (full reopen)", w, h, true);
     };
 
-    // A source switch (M2 step 1): close the current device, open the new
+    // A source switch: close the current device, open the new
     // one, and pick/start a format on it exactly as at startup. `opt.device`
     // becomes the new active path so the title bar, --info-style messages
     // and a later switch back all refer to the right one.
@@ -900,7 +901,7 @@ int main(int argc, char** argv) {
         afterRestart("source switched");
     };
 
-    // A new pixel format (a machine mode or preset asks for one, M4): always
+    // A new pixel format (a machine mode or preset asks for one): always
     // a full close/reopen, the path that is safe for g8, at the
     // requested size. RGB formats stay behind the IOMMU guard.
     auto switchFormat = [&](const PixelFormat* pf, uint32_t w, uint32_t h) -> bool {
@@ -934,7 +935,7 @@ int main(int argc, char** argv) {
         return true;
     };
 
-    // M2 steps 5-7: a small audio mixer/router, independent of the video
+    // A small audio mixer/router, independent of the video
     // capture above (own ALSA devices, own threads).
     const int kAudioOutputChannels = 2;  // shared by the mixer, the recorder and the Audio panel below
     AudioMixer audioMixer;
@@ -945,7 +946,7 @@ int main(int argc, char** argv) {
     std::vector<AudioDeviceInfo> audioDevices = enumerateAudioDevices();
     // "default" (ALSA's PCM name for "whatever PipeWire/Pulse currently
     // considers the system default output") goes first, ahead of the raw
-    // hw: devices — this is the actual fix, corrected 2026-09-23 after an
+    // hw: devices — this is the actual fix, corrected after an
     // earlier wrong guess: a first attempt hardcoded a preference for a
     // "PCH" device on the theory that "default" must be wrong because it
     // resolved to the HDMI/Nvidia output; the user corrected this directly
@@ -980,7 +981,7 @@ int main(int argc, char** argv) {
         if (on) {
             // Reuse this device's last known settings if it's been enabled
             // before this run, instead of always resetting to hard defaults
-            // — found 2026-09-23 (user: "If I enable/change settings/
+            // — found in testing ("If I enable/change settings/
             // disable/enable a device it is reset back to default"):
             // disabling used to fully discard the RoutedSource, so a
             // re-enable silently lost mode/route/gain/balance/delay.
@@ -1101,13 +1102,13 @@ int main(int argc, char** argv) {
             break;
         }
     };
-    // Monitor on by default (user feedback, Phase B Step 2, 2026-09-23: "The
+    // Monitor on by default (user feedback: "The
     // default should be enabling the monitor") so a newly added source is
     // audible without a separate click; harmless if it fails (no playback
     // device, e.g. a headless box) — toggleAudioMonitor's own printf covers
     // that, and the Audio panel's Start/Stop button still works either way.
     actions.toggleAudioMonitor(true);
-    // M2 step 9: --record-audio gives the initial/default path; the GUI
+    // --record-audio gives the initial/default path; the GUI
     // button reuses it (adding a timestamp if it's still the default) so
     // repeated recordings during one run don't overwrite each other.
     std::string audioRecordPath = opt.recordAudioPath;
@@ -1128,7 +1129,7 @@ int main(int argc, char** argv) {
     };
     if (!opt.recordAudioPath.empty()) actions.toggleAudioRecording(true);
 
-    // M3: video (+ audio) recording. The audio mixer's sink feeds every
+    // Video (+ audio) recording. The audio mixer's sink feeds every
     // mixed tick into the recorder regardless of whether it's active right
     // now (Recorder::pushAudioFrame is a no-op when not recording) so
     // starting a recording never has to touch the audio wiring again.
@@ -1160,7 +1161,7 @@ int main(int argc, char** argv) {
     std::string recError;         // last start failure, shown in the Recorder panel
     int64_t recStartNs = 0;       // for the panel's elapsed time
     // The desktop's Videos folder (~/Videos here), shared with freshCoder
-    // (user request 2026-09-29); it was the directory freshVision was started in.
+    //; it was the directory freshVision was started in.
     std::string recDefaultFolder = defaultVideoFolder();
     auto defaultRecordName = []() {
         std::time_t t = std::time(nullptr);
@@ -1175,7 +1176,7 @@ int main(int argc, char** argv) {
         std::string re;
         // Canvas = whatever the capture's current size is right now; a
         // later mode change letterboxes into this same size instead of
-        // resizing the file (Recorder::start's doc comment, M3 plan).
+        // resizing the file (Recorder::start's doc comment).
         // The capture's real rate (rounded; 50 for the PAL C64), not a fixed 60.
         double recFps = captureFps >= 1.0 ? double(std::lround(captureFps)) : 50.0;
         // Right after a reopen the stats second is cut short (it said 40 fps):
@@ -1313,8 +1314,8 @@ int main(int argc, char** argv) {
             // reports what the driver detected) still has a value to save,
             // but requestControlChange() on it at apply time fails, and on
             // this driver was observed to also cause a real stream restart
-            // (a benign one, per M0's own findings, but pointless to
-            // trigger). Real bug, found 2026-09-23 end-to-end-testing this
+            // (a benign one, but pointless to
+            // trigger). Real bug, found end-to-end-testing this
             // feature — controlIsSettable() is the same check
             // setControlByName() already uses, so both agree.
             if (!c.hasValue || !controlIsSettable(c) || isDetectedOnlyControl(c.name)) continue;
@@ -1351,7 +1352,7 @@ int main(int argc, char** argv) {
         if (!p.devicePath.empty() && p.devicePath != opt.device && actions.selectSource) actions.selectSource(p.devicePath);
         if (chosen && p.formatFourcc != 0 && p.formatFourcc != chosen->fourcc) {
             // A different pixel format: one full reopen at the preset's size
-            // (M4: machine modes need it, e.g. RGB -> g8 composite).
+            // (machine modes need it, e.g. RGB -> g8 composite).
             const PixelFormat* pf = findFormat(p.formatFourcc);
             if (!pf) {
                 std::printf("preset '%s': format '%s' is not one freshVision can show, kept '%s'\n", p.name.c_str(),
@@ -1366,7 +1367,7 @@ int main(int argc, char** argv) {
         // Skip the restart entirely if size and crop already match — a
         // stop()+start() cycle always carries some chance of the usual
         // occasional post-restart DQBUF hiccup (self-recovering, already
-        // documented, M0/M1), and the common case for loading a preset is
+        // documented), and the common case for loading a preset is
         // "the same setup that's already running", not an actual change.
         Rect curCrop = cap.appliedCrop();
         // A preset without a crop (a hand-written machine mode) leaves the crop alone.
@@ -1455,7 +1456,7 @@ int main(int argc, char** argv) {
 
     // Tracks the last successfully-loaded preset's identity, for the
     // Presets panel to pre-fill its Save fields with (PresetPanelState,
-    // below) — user feedback, 2026-09-23.
+    // below) — user feedback.
     std::string lastLoadedGroup, lastLoadedName;
 
     actions.resetControl = [&](uint32_t id) {
@@ -1515,7 +1516,7 @@ int main(int argc, char** argv) {
         if (mode > 0) std::printf("pal timing: %s %dxFsc, %d samples/line at 4x, requested\n", stdInfo().name, mode, palTimingLine);
         else std::printf("pal timing: Sync-on-Green baseline requested\n");
     };
-    // In phases, measured 2026-09-29: the line length takes effect
+    // In phases, measured: the line length takes effect
     // while streaming, but a new capture window (Position/Timing) only at the
     // next device open, and a window past the current line length is
     // ignored. So for 4x: the line length; then, once the driver reports it
@@ -1721,7 +1722,7 @@ int main(int argc, char** argv) {
     };
     for (const std::string& spec : opt.audioSources) addAudioSpec(spec);
 
-    // ---- Machines (M4): files, matching, applying, automatic switching ----
+    // ---- Machines: files, matching, applying, automatic switching ----
     std::vector<Machine> machines;
     std::vector<std::string> machineErrors;
     int64_t machinesStamp = 0;
@@ -2132,7 +2133,7 @@ int main(int argc, char** argv) {
         int mi, mo;
         if (findPresetMode(group, name, mi, mo)) actions.removeMyMode(mi, name);
     };
-    // RGB auto-tune (M4 step 4).
+    // RGB auto-tune.
     RgbAutoTune rgbTune;
     Rect pendingRgbCrop;
     RgbAutoTune::Io rgbIo;
@@ -2303,7 +2304,7 @@ int main(int argc, char** argv) {
                 // S-Video: an RGB capture with brightness and colour on two inputs.
                 // Decode PAL: composite on Green (a g8 capture, or the Green
                 // input of an RGB capture); with S-Video ticked, Y on Green
-                // and C on the chosen input of an RGB capture (user 2026-09-30).
+                // and C on the chosen input of an RGB capture.
                 const bool rgbIn = channelOffset(shown.layout, 0) >= 0;
                 const bool svOn = dispOpts.palSvideo && rgbIn;
                 bool palOn = dispOpts.palDecode && (shown.layout == Layout::Grey8 || rgbIn);
@@ -2481,7 +2482,7 @@ int main(int argc, char** argv) {
                         } else if (palInfo.colour && palParity >= 0) {
                             palParityHeld = true;  // next frame: keep the last decided parity
                         }
-                        // Phase 3: one pixel per machine pixel, from its settled
+                        // One pixel per machine pixel, from its settled
                         // centre, optionally snapped to the machine's palette.
                         const uint8_t* showRgb = palRgb.data();
                         int showW = outW;
@@ -2801,7 +2802,7 @@ int main(int argc, char** argv) {
                 audioState.recordingPath = ads.recordingPath;
                 audioState.framesRecorded = ads.framesRecorded;
                 {
-                    // M2 step 10: audio hardware clock vs. system/video clock, from the
+                    // Audio hardware clock vs. system/video clock, from the
                     // first active source's real captured-frame count against wall time
                     // since it was added (see AudioMixer::driftReference in audio.h).
                     auto [audioFrames, audioAddedNs] = ads.driftReference;
@@ -2904,7 +2905,7 @@ int main(int argc, char** argv) {
             // Safety net: if the display loop takes over 1 s per frame for
             // 3 s in a row while recording, stop the recording by itself.
             // A frozen GUI can't be clicked, so Stop would be unreachable and
-            // the file left unfinished (2026-09-28: NVENC + panels).
+            // the file left unfinished (NVENC + panels).
             if (recorder.active() && lastLoopEndNs > 0 && tPresent - lastLoopEndNs > 1000000000LL) {
                 if (slowSinceNs == 0) slowSinceNs = lastLoopEndNs;
                 if (tPresent - slowSinceNs >= 3000000000LL) {
@@ -2949,7 +2950,7 @@ int main(int argc, char** argv) {
                 Counters cur = accumulate();
                 captureFps = double(cur.delivered - before.delivered) / secs;
                 {
-                    // Sound vs. picture (backlog 6): how late each reaches you.
+                    // Sound vs. picture: how late each reaches you.
                     if (!win.agePresent.empty()) pictureAgeMs = median(win.agePresent);
                     const double out = audioMixer.monitorOutputDelayMs();
                     if (audioMixer.monitoring() && out > 0) {
@@ -3004,7 +3005,7 @@ int main(int argc, char** argv) {
                               mean(win.uploadMs), mean(win.swapMs));
                 statsPanel = panel;
 
-                // M2 step 10: print audio/video drift alongside the video stats line
+                // Print audio/video drift alongside the video stats line
                 // (not folded into `line` itself, kept separate so the video-only log
                 // scraping used throughout this project keeps working unchanged).
                 AudioCounters mixc = audioMixer.mixCounters();
@@ -3037,7 +3038,7 @@ int main(int argc, char** argv) {
                     palMsSum = 0;
                     palMsCount = 0;
                 }
-                // Machines (M4): what the source looks like, the best mode for it,
+                // Machines: what the source looks like, the best mode for it,
                 // and the automatic switch.
                 {
                     if (machinesDirStamp() != machinesStamp) {

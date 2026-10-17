@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 #include "recorder.h"
 
 extern "C" {
@@ -101,7 +102,7 @@ std::vector<VideoEncoderKind> availableVideoEncoders() {
         // machine).
         // NVENC rejects very small frames ("Frame Dimension less than the
         // minimum supported value" at 64x64, found while testing this probe
-        // 2026-09-23) -- 256x256 clears that floor for every encoder here.
+        // -- 256x256 clears that floor for every encoder here.
         ctx->width = 256;
         ctx->height = 256;
         ctx->pix_fmt = (kind == VideoEncoderKind::Ffv1 || kind == VideoEncoderKind::Raw) ? AV_PIX_FMT_BGR0
@@ -126,10 +127,10 @@ bool Recorder::openVideoEncoder(VideoEncoderKind kind, std::string& err) {
     std::vector<std::string> candidates;
     if (kind == VideoEncoderKind::Auto) {
         // The graphics card first (NVENC; VAAPI where it works), x264 as the
-        // fallback. x264 was put first on 2026-09-28 because NVENC seemed to
+        // fallback. x264 was put first for a while because NVENC seemed to
         // stall the GUI; the stall was the GUI waiting on the audio mixer's
-        // lock (fixed 2026-09-29), and the user approved going back
-        // (2026-09-29, "execute all", plan step 11).
+        // lock (since fixed), so NVENC is first again.
+        //
         candidates = {"h264_nvenc", "h264_vaapi", "libx264"};
     } else {
         const char* n = encoderNameFor(kind);
@@ -153,11 +154,11 @@ bool Recorder::openVideoEncoder(VideoEncoderKind kind, std::string& err) {
         ctx->height = int(canvasHeight_);
         // FFV1 gets RGB (bgr0) so "lossless" means lossless against the
         // captured pixels; converting to 4:2:0 first quartered the colour
-        // resolution (2026-09-28). The H.264
+        // resolution. The H.264
         // encoders stay on 4:2:0, the format every player handles.
         // A g8 (Sync-on-Green composite) source is one channel of raw
         // samples: the lossless encoders keep it as exactly that, one plane,
-        // so freshCoder gets the card's own samples back (Composite phase 1,
+        // so freshCoder gets the card's own samples back (
         // step 5).
         const bool lossless = name == "ffv1" || name == "rawvideo";
         AVPixelFormat pixFmt = !lossless                      ? AV_PIX_FMT_YUV420P
@@ -210,7 +211,7 @@ bool Recorder::openVideoEncoder(VideoEncoderKind kind, std::string& err) {
 
 bool Recorder::openAudioEncoder(std::string& err) {
     if (audioChannels_ <= 0) return true;  // video-only recording
-    const AVCodec* codec = avcodec_find_encoder(AV_CODEC_ID_PCM_S16LE);  // no lossy compression for a first spike
+    const AVCodec* codec = avcodec_find_encoder(AV_CODEC_ID_PCM_S16LE);  // no lossy compression
     if (!codec) {
         err = "no PCM S16LE encoder in this FFmpeg build";
         return false;
@@ -441,7 +442,7 @@ void Recorder::convertAndEncode(const QueuedFrame& q) {
 
     // A mode change or source switch mid-recording changes the source size;
     // rebuild the scaler and the letterbox rect for the new size, but never
-    // the canvas itself (Recorder::start's doc comment / M3 plan).
+    // the canvas itself (Recorder::start's doc comment).
     const AVPixelFormat encFmt = AVPixelFormat(encPixFmt_);
     if (srcWidth != srcWidth_ || srcHeight != srcHeight_) {
         if (swsCtx_) sws_freeContext(static_cast<SwsContext*>(swsCtx_));
@@ -553,7 +554,7 @@ void Recorder::audioWorkerMain() {
 void Recorder::encodeQueuedAudio(const int16_t* interleaved, size_t frames, int64_t ptsNs) {
     if (!fmtCtx_ || !aCodecCtx_ || audioChannels_ <= 0 || !frames) return;
     // Anchored to the same clock as video (both CLOCK_MONOTONIC/steady_clock,
-    // cross-comparable — already relied on for the M2 drift measurement):
+    // cross-comparable — already relied on for the drift measurement):
     // firstVideoPtsNs_ may not be set yet if audio starts before the first
     // video frame, in which case this chunk is simply the time origin.
     int64_t expectedAnchor = -1;
@@ -578,12 +579,12 @@ void Recorder::encodeQueuedAudio(const int16_t* interleaved, size_t frames, int6
     // Each block starts exactly where the previous one ended (sample count),
     // not at the clock time the mixer thread handled it: those clock times
     // jitter, and the track came out with half its blocks overlapping and
-    // the rest leaving small gaps (2026-09-28). The mixer produces
+    // the rest leaving small gaps. The mixer produces
     // blocks on a fixed clock grid, so the count stays in step with the
     // clock. It is re-anchored to the clock only if they stay more than
     // 40 ms apart for 0.5 s in a row (e.g. the mixer's timing was reset by a
     // monitor switch); a brief stall that the mixer then catches up on must
-    // not cause a jump (seen at recording start, 2026-09-28).
+    // not cause a jump (seen at recording start).
     int64_t clockPts = av_rescale_q(ptsNs - firstVideoPtsNs_.load(), AVRational{1, 1000000000}, ctx->time_base);
     int64_t maxDrift = int64_t(audioRate_) / 25;  // 40 ms in samples
     bool apart = audioNextPts_ >= 0 && (clockPts - audioNextPts_ > maxDrift || audioNextPts_ - clockPts > maxDrift);

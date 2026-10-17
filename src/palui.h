@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 // PAL composite decode settings and their ImGui controls, shared by
 // freshVision's Display panel and freshCoder, so both show the same controls
 // for the same decoder (tools/pal/pal.hpp).
@@ -35,7 +36,7 @@ struct PalDecodeUi {
     int svideoMode = 0, svideoLuma = 1, svideoChroma = 2;
     int standardMode = 0;  // freshCoder: 0 = as the recording says (tag FRESHVISION_STANDARD, else PAL), 1 = PAL, 2 = NTSC
     bool lumaFilterUnused = false;  // set by the owner while S-Video is decoded (brightness is taken unfiltered)
-    // Phase 3: the machine's own pixels (tools/pal/grid.hpp).
+    // The machine's own pixels (tools/pal/grid.hpp).
     int profile = 1;           // index into pal::machineProfiles() (1 = C64 PAL)
     bool pixelGrid = false;    // one output pixel per machine pixel, taken from its settled centre
     float gridCore = 0.5f;     // central part of each pixel that is averaged

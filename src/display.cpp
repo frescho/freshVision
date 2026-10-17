@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 #include "display.h"
 
 #include <SDL.h>
@@ -40,7 +41,7 @@ void main() {
 }
 )";
 
-// UYVY decode on the GPU (replaces the M0 CPU conversion). The texture holds
+// UYVY decode on the GPU (replaces a CPU conversion). The texture holds
 // the raw packed bytes reinterpreted as RGBA8 at half the source width: each
 // texel is one (U, Y0, V, Y1) group, exactly as V4L2's UYVY layout has it in
 // memory. texelFetch is used (not filtered sampling) so chroma pairing is

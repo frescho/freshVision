@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 // PAL composite: a test-signal generator and a software decoder, for the
 // Sync-on-Green capture path;
 //

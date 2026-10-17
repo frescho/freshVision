@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 // RGB capture safety guard.
 //
 // With the Intel IOMMU on, any RGB-format capture froze the development

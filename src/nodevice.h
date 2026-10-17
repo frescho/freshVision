@@ -1,6 +1,7 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 // What freshVision does when it can't open a capture device: which device to
 // start with when none is given, and a help window instead of a bare error
-// when nothing can be opened (release 0.1.0, step A6).
+// when nothing can be opened.
 #pragma once
 
 #include <functional>

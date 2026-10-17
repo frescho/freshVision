@@ -1,10 +1,10 @@
-# Flatpak manifest for freshVision and freshCoder (release plan step E1).
+# Flatpak manifest for freshVision and freshCoder.
 #
 # Builds the programs from this source tree inside the Freedesktop runtime.
-# It needs release steps A1-A3 first (binary named `freshvision`, Dear ImGui
+# It needs the binary named `freshvision`, Dear ImGui
 # vendored in third_party/imgui, CMake install rules for the binaries, the
 # .desktop files, icons and the AppStream metainfo); until then it does not
-# build. Local build and test (step E2, needs flatpak-builder):
+# build. Local build and test (needs flatpak-builder):
 #   flatpak-builder --user --install --force-clean build-flatpak \
 #       packaging/flatpak/io.github.frescho.freshVision.yml
 #   flatpak run io.github.frescho.freshVision
@@ -30,7 +30,7 @@ finish-args:
   # The sound monitor's "default" device goes through PulseAudio/PipeWire.
   - --socket=pulseaudio
   # Recordings default to the Videos folder; other folders come through the
-  # file-chooser portal (release step A7).
+  # file-chooser portal.
   - --filesystem=xdg-videos
   # "Import from the other installation": the installed build's settings,
   # read-only.
@@ -42,7 +42,7 @@ modules:
       - -DCMAKE_BUILD_TYPE=Release
     sources:
       # Local build from this tree; a release build points at the tagged
-      # GitHub source instead (step D3), e.g.:
+      # GitHub source instead, e.g.:
       #   - type: git
       #     url: https://github.com/frescho/freshvision.git
       #     tag: v0.1.0

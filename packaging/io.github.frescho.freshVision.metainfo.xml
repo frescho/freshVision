@@ -35,11 +35,11 @@
   <screenshots>
     <screenshot type="default">
       <caption>An MSX1 on composite, decoded in software, with the control column</caption>
-      <image>https://raw.githubusercontent.com/frescho/freshvision/main/docs/user/images/freshvision-msx-window.png</image>
+      <image>https://raw.githubusercontent.com/frescho/freshVision/STABLE/docs/user/images/freshvision-msx-window.png</image>
     </screenshot>
     <screenshot>
       <caption>A Commodore 64 on composite, decoded</caption>
-      <image>https://raw.githubusercontent.com/frescho/freshvision/main/docs/user/images/decoding/decoded-composite.png</image>
+      <image>https://raw.githubusercontent.com/frescho/freshVision/STABLE/docs/user/images/decoding/decoded-composite.png</image>
     </screenshot>
   </screenshots>
   <url type="homepage">https://github.com/frescho/freshvision</url>

@@ -15,6 +15,7 @@ The card driver is not part of freshVision and is not distributed with it.
 | Component | Version | Licence | Where |
 |---|---|---|---|
 | Dear ImGui (core, SDL2 and OpenGL 3 backends) | 1.90.1 | MIT, (c) 2014-2024 Omar Cornut | `third_party/imgui/` (`LICENSE.txt` there) |
+| stb_truetype, stb_rect_pack, stb_textedit (bundled with Dear ImGui as `imstb_*.h`) | as bundled with ImGui 1.90.1 | MIT or public domain (Unlicense), (c) Sean Barrett; notice in each file | `third_party/imgui/imstb_*.h` |
 
 ## Used at build and run time (not included; from the system or the Flatpak runtime)
 

@@ -1,5 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 // SDL2 + OpenGL (core profile) display: shader-based rendering, double-
-// buffered PBO uploads, GPU-side UYVY decode. M1 step 8 (replaces the M0
+// buffered PBO uploads, GPU-side UYVY decode (replaces the first
 // fixed-function path).
 #pragma once
 
@@ -38,7 +39,7 @@ struct DisplayOptions {
     bool palSvideo = false;
     int svideoLuma = 1, svideoChroma = 2;  // Y (with sync) on Green, C on Blue by default (Red the alternative)
     bool palAutoTune = false;    // auto-tune (freshVision): line length, black level, swing, pixel grid
-    bool rgbAutoTune = false;    // analog RGB: phase, position (and crop) tuned after every mode change (M4)
+    bool rgbAutoTune = false;    // analog RGB: phase, position (and crop) tuned after every mode change
     // The machine's whole screen (border included) in capture pixels, 0 = not
     // known. With it the RGB auto-tune copes with a black border: it keeps
     // the position when the picture is smaller than the screen and crops to
@@ -76,7 +77,7 @@ public:
     // glFinish()es so the driver does not queue frames ahead (extra latency).
     void beginFrame();
     // The window resizes freely; only the picture follows the scale mode, so
-    // the space around it stays free for panels (user, 2026-09-28).
+    // the space around it stays free for panels.
     void drawVideo(const DisplayOptions& opts);
     // Largest integer factor (up to kMaxIntegerFactor) at which the current
     // frame, with `pixelAspect`, fits the usable area of the screen the

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 // freshCoder: encoding the processed pictures plus the recording's sound.
 #pragma once
 

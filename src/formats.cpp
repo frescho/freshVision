@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 #include "formats.h"
 
 #include <linux/videodev2.h>
@@ -20,7 +21,7 @@ static const PixelFormat kFormats[] = {
     {"bgr24", V4L2_PIX_FMT_BGR24, Layout::Bgr24, 3, true},
     {"rgb24", V4L2_PIX_FMT_RGB24, Layout::Rgb24, 3, true},
     {"uyvy", V4L2_PIX_FMT_UYVY, Layout::Uyvy, 2, false},
-    // Composite-via-Sync-on-Green investigation (2026-09-25):
+    // Composite-via-Sync-on-Green investigation:
     // the driver's raw single-channel format (V4L2 GREY), used for a
     // signal fed into Green.
     // Not RGB and not
@@ -51,7 +52,7 @@ std::string fourccString(uint32_t fourcc) {
     return s;
 }
 
-// Measured on 2026-09-21: on the driver reporting "Vision",
+// Measured: on the driver reporting "Vision",
 // all four RGB formats (RGB4, BGR4, RGB3, BGR3) deliver bytes B,G,R(,x) in memory.
 Layout effectiveLayout(const PixelFormat& pf, const std::string& driverName, bool swapRb) {
     Layout l = pf.layout;

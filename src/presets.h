@@ -1,6 +1,7 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 // Named, savable/restorable snapshots of the app's video + audio + recorder
-// settings ("presets") — an early slice of M4's "presets DB, known-machine
-// config DB" pulled forward to what M1-M3 already have.
+// settings ("presets") — the
+// base of the machine modes.
 //
 //
 // Storage: one small hand-rolled key=value text file per preset under

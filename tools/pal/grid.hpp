@@ -1,11 +1,12 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 // Machine pixels from a decoded composite picture: the pixel grid (period and
 // phase), sampling each pixel at its settled centre, and snapping to the
-// machine's palette (learned from the picture, or given). Phase 3 of the
+// machine's palette (learned from the picture, or given). This is the
 // composite work.
 //
 // A home computer draws its picture on a pixel clock; a composite signal
 // smears every colour change over a few samples, but the middle of each
-// pixel is settled (user's idea, 2026-09-29). Knowing the grid, the middle
+// pixel is settled. Knowing the grid, the middle
 // is taken, and with a known palette the colour is snapped to the nearest
 // palette entry.
 #pragma once
@@ -406,7 +407,7 @@ inline std::vector<Colour> learnPalette(const uint8_t* rgb, size_t count, int k,
     }
     // Entries no pixel belongs to are dropped: a start colour the picture
     // never shows must not attract pixels later (a textbook C64 grey took
-    // the decoded brown, 2026-09-29).
+    // the decoded brown).
     std::vector<int> members(cen.size(), 0);
     for (int l : label) members[size_t(l)]++;
     for (size_t j = 0; j < cen.size(); ++j)
@@ -559,7 +560,7 @@ inline void snapCalibrated(uint8_t* rgb, size_t count, const std::vector<Colour>
 // The composite colour is smeared over ~3.5 pixels, so pixels decided one
 // by one lose fine colour detail (~50% right on hires/multicolour test
 // cells). Deciding each cell's colour set first and then each pixel within
-// it uses the machine's own rule (backlog 15).
+// it uses the machine's own rule.
 //
 // `sampled`: the grid-sampled picture (not snapped), `idx`: the per-pixel
 // palette choice already made (for the cell alignment and the candidates).

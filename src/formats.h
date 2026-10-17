@@ -1,4 +1,5 @@
-// Pixel formats the spike can display, and the safety classification of formats.
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Pixel formats freshVision can display, and the safety classification of formats.
 #pragma once
 
 #include <cstdint>

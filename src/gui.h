@@ -1,5 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 // ImGui panels: stats, the runtime-enumerated control list, and geometry
-// (size/crop). M1 steps 5-7.
+// (size/crop).
 #pragma once
 
 #include <cstdint>
@@ -26,14 +27,14 @@ struct GeometryState {
     bool grey8 = false;                 // capture format is g8 (the PAL decode checkbox applies)
     bool rgbChannels = false;           // an RGB capture (S-Video decoding can apply)
     std::string palStatus;              // PAL decode result line for the Display panel, empty when off
-    PalGridStatus palGrid;              // phase 3 pixel grid/palette state for the Display panel
+    PalGridStatus palGrid;              // pixel grid/palette state for the Display panel
     std::string autoStatus;             // auto-tune's last action or state, empty when off
     std::string rgbStatus;              // RGB auto-tune's last step (phase/position/crop), empty if never run
     bool rgbRunning = false;
     int rgbAreaW = 0, rgbAreaH = 0;     // picture area the RGB auto-tune measured last, 0 = none
 };
 
-// Machines section (M4): the machine files, what the source looks like, and
+// Machines section: the machine files, what the source looks like, and
 // which mode matches it.
 struct MachinePanelState {
     struct Entry {
@@ -78,8 +79,8 @@ struct AudioPanelState {
     std::vector<AudioDeviceInfo> playbackDevices;  // enumeratePlaybackDevices(), for the monitor output picker
     std::string playbackDeviceId;                  // currently selected/active monitor output
     std::string monitorError;                      // last monitor start/switch failure, empty if none
-    // Hardware-mixer volume for the monitor's own playback device (2026-09-23
-    // backlog item 4) — mirrors a source's hwAudio entry above, but for
+    // Hardware-mixer volume for the monitor's own playback device
+    // — mirrors a source's hwAudio entry above, but for
     // output; available is false for "default" or a hw: device with no
     // usable playback mixer element found (mixer.monitorHasHwControl()).
     bool monitorHwAvailable = false;
@@ -90,15 +91,15 @@ struct AudioPanelState {
     bool recording = false;
     std::string recordingPath;
     uint64_t framesRecorded = 0;
-    double driftMs = 0;       // audio hardware clock vs. wall clock, over driftSeconds (M2 step 10)
-    // Monitor sound vs. picture (backlog 6): how late each reaches you
+    double driftMs = 0;       // audio hardware clock vs. wall clock, over driftSeconds
+    // Monitor sound vs. picture: how late each reaches you
     // (ms after the source), and how many frames the picture is held back.
     double monitorSoundMs = 0, pictureMs = 0;
     int pictureDelayFrames = 0;
     double driftSeconds = 0;  // 0 = no source active yet / not enough time elapsed
 };
 
-// M3: the Recorder panel's state, filled by main.cpp each frame.
+// The Recorder panel's state, filled by main.cpp each frame.
 struct RecorderPanelState {
     bool recording = false;
     std::string path;
@@ -108,7 +109,7 @@ struct RecorderPanelState {
     RecorderCounters counters;
     // Probed once at startup (availableVideoEncoders(), recorder.h) so the
     // dropdown below only offers what actually opens on this machine
-    // (2026-09-23 backlog item: e.g. VAAPI silently falls through today
+    // (e.g. VAAPI silently falls through today
     // rather than being hidden).
     std::vector<VideoEncoderKind> availableKinds;
     uint32_t canvasWidth = 0, canvasHeight = 0;  // what a recording started now would use (current capture size)
@@ -145,15 +146,15 @@ struct GuiActions {
     std::function<void(const std::string& path)> selectSource;  // switch to a different /dev/videoN
 
     // Single per-device on/off (folds add+remove into one control; user
-    // feedback, Phase B Step 1, 2026-09-23).
+    // feedback).
     std::function<void(const std::string& deviceId, bool on)> setAudioSourceEnabled;
     std::function<void(const std::string& deviceId, ChannelMode mode)> setAudioChannelMode;
     std::function<void(const std::string& deviceId, int logicalIndex, OutputRoute route)> setAudioOutputRoute;
     std::function<void(const std::string& deviceId, float gain)> setAudioGain;
     std::function<void(const std::string& deviceId, float balance)> setAudioBalance;
     // Hardware-mixer equivalents, used instead of the two above whenever
-    // AudioPanelState::hwAudio says a device has one (user preference,
-    // 2026-09-23: "I prefer the [hardware mixer over software volume]").
+    // AudioPanelState::hwAudio says a device has one (preferred
+    // over software volume).
     std::function<void(const std::string& deviceId, float v0to1)> setAudioHwVolume;
     std::function<void(const std::string& deviceId, float balance)> setAudioHwBalance;
     std::function<void(const std::string& deviceId, bool mute)> setAudioHwMuted;
@@ -184,7 +185,7 @@ struct GuiActions {
     std::function<void(const std::string& group, const std::string& name)> deletePreset;
 
     // Controls: reset one control, or every currently-settable one, to the
-    // driver's own reported default. User feedback, 2026-09-23: "it was
+    // driver's own reported default ("it was
     // not that obvious how to get back to defaults".
     std::function<void(uint32_t id)> resetControl;
     std::function<void()> resetAllControls;
@@ -198,7 +199,7 @@ struct GuiActions {
     // format at the same size (one full reopen), since it needs two inputs.
     std::function<void()> switchToRgbForSvideo;
 
-    // Machines (M4). mode -1: the machine's best-matching mode (or its first).
+    // Machines. mode -1: the machine's best-matching mode (or its first).
     std::function<void(int machine, int mode)> applyMachineMode;
     // Into My modes: `conditions` = what the source looks like now (else
     // click-only); `sound` = the sound sources too.
